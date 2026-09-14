@@ -1,0 +1,33 @@
+diff --git a/services/src/power/small/auto_suspend_loop.c b/services/src/power/small/auto_suspend_loop.c
+index 741a73c..8aa5eec 100644
+--- a/services/src/power/small/auto_suspend_loop.c
++++ b/services/src/power/small/auto_suspend_loop.c
+@@ -16,19 +16,21 @@
+ #include "hilog_wrapper.h"
+ #include "power/suspend_ops.h"
+ 
+-static const int32_t SUSPEND_TIME = 10;
++/*
++ * 真实挂起已由内核 PM idle 钩子接管（device/soc/hisilicon/common/platform/pm/pm_hi35xx.c，
++ * LOSCFG_DRIVERS_HDF_PLATFORM_PM）：idle 任务在无 PM 锁时自动 LOS_PmSuspend。
++ * 挂起准入仍经 WakeupHolder RunningLock 生效（running_lock_handler →
++ * /proc/power/power_lock → 内核 PM 锁计数）。本循环仅保留为后续用户态挂起策略槽位，
++ * 不再以 sleep 模拟挂起（原实现误导且产生 10s 周期无效唤醒）。
++ */
++static const int32_t SUSPEND_POLICY_IDLE_TIME = 3600;
+ 
+ static BOOL AutoSuspendLoopFunc(AutoSuspendWait waitFunc)
+ {
+-    POWER_HILOGD("Prepare suspend"); // here to prepare to enter suspend
+-
+     // wait callback to check if suspend block counter is ready
+     waitFunc();
+ 
+-    POWER_HILOGD("Enter suspend");
+-    sleep(SUSPEND_TIME); // using sleep to simulate suspend
+-
+-    POWER_HILOGD("Exit suspend");
++    sleep(SUSPEND_POLICY_IDLE_TIME);
+     return TRUE;
+ }
+ 

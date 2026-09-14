@@ -1,0 +1,727 @@
+diff --git a/common/hal/media/build.sh b/common/hal/media/build.sh
+index 883bd922..855a70e8 100755
+--- a/common/hal/media/build.sh
++++ b/common/hal/media/build.sh
+@@ -27,7 +27,11 @@ function main(){
+     #cp -rf $CUR_DIR/codec/$BOARD_NAME/$OS_TYPE/libs/libhimp3dec.so $OUT_DIR/
+     cp -rf $CUR_DIR/codec/$BOARD_NAME/$OS_TYPE/libs/libplugin_adec_35xx.so $OUT_DIR/
+     cp -rf $CUR_DIR/codec/$BOARD_NAME/$OS_TYPE/libs/libplugin_aenc_35xx.so $OUT_DIR/
+-    cp -rf $CUR_DIR/codec/$BOARD_NAME/$OS_TYPE/libs/libplugin_vdec_35xx.so $OUT_DIR/
++    # AOV PoC aries 基线修复：hi3518ev300 预编译快照缺 libplugin_vdec_35xx.so（解码插件，
++    # AOV 纯录像场景非必需），改为条件拷贝；dv300 存在该文件行为不变
++    if [ -f "$CUR_DIR/codec/$BOARD_NAME/$OS_TYPE/libs/libplugin_vdec_35xx.so" ]; then
++        cp -rf $CUR_DIR/codec/$BOARD_NAME/$OS_TYPE/libs/libplugin_vdec_35xx.so $OUT_DIR/
++    fi
+     cp -rf $CUR_DIR/codec/$BOARD_NAME/$OS_TYPE/libs/libplugin_venc_35xx.so $OUT_DIR/
+ 
+     cp -rf $CUR_DIR/format/$BOARD_NAME/$OS_TYPE/libs/libformat_hw.so $OUT_DIR/
+diff --git a/common/platform/BUILD.gn b/common/platform/BUILD.gn
+index a344eec3..af7a5e32 100755
+--- a/common/platform/BUILD.gn
++++ b/common/platform/BUILD.gn
+@@ -27,6 +27,7 @@ group("drivers") {
+     "mmc",
+     "mtd",
+     "pin",
++    "pm",
+     "pwm",
+     "rtc",
+     "spi",
+diff --git a/common/platform/lite.mk b/common/platform/lite.mk
+index de2e17db..be09f31a 100755
+--- a/common/platform/lite.mk
++++ b/common/platform/lite.mk
+@@ -78,6 +78,11 @@ ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_RTC), y)
+     LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/rtc
+ endif
+ 
++ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_PM), y)
++    LITEOS_BASELIB += -lhdf_platform_pm
++    LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/pm
++endif
++
+ ifeq ($(LOSCFG_DRIVERS_HDF_PLATFORM_UART), y)
+     LITEOS_BASELIB += -lhdf_uart
+     LIB_SUBDIRS    += $(HISILICON_DRIVERS_ROOT)/uart
+diff --git a/common/platform/pm/BUILD.gn b/common/platform/pm/BUILD.gn
+new file mode 100644
+index 00000000..99234f2d
+--- /dev/null
++++ b/common/platform/pm/BUILD.gn
+@@ -0,0 +1,20 @@
++# Copyright (c) 2026 HiSilicon (Shanghai) Technologies CO., LIMITED.
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++import("//drivers/hdf_core/adapter/khdf/liteos/hdf.gni")
++
++module_switch = defined(LOSCFG_DRIVERS_HDF_PLATFORM_PM)
++module_name = "hdf_platform_pm"
++hdf_driver(module_name) {
++  sources = [ "pm_hi35xx.c" ]
++}
+diff --git a/common/platform/pm/Makefile b/common/platform/pm/Makefile
+new file mode 100644
+index 00000000..c5cd6f04
+--- /dev/null
++++ b/common/platform/pm/Makefile
+@@ -0,0 +1,27 @@
++#
++# Copyright (c) 2026 HiSilicon (Shanghai) Technologies CO., LIMITED.
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++#
++
++include $(LITEOSTOPDIR)/config.mk
++include $(LITEOSTOPDIR)/../../drivers/hdf_core/adapter/khdf/liteos/lite.mk
++
++MODULE_NAME := hdf_platform_pm
++
++LOCAL_CFLAGS += $(HDF_INCLUDE)
++
++LOCAL_SRCS += pm_hi35xx.c
++
++LOCAL_CFLAGS += -fstack-protector-strong -Wextra -Wall -Werror -fsigned-char -fno-strict-aliasing -fno-common
++
++include $(HDF_DRIVER)
+diff --git a/common/platform/pm/pm_hi35xx.c b/common/platform/pm/pm_hi35xx.c
+new file mode 100644
+index 00000000..d3e884cf
+--- /dev/null
++++ b/common/platform/pm/pm_hi35xx.c
+@@ -0,0 +1,170 @@
++/*
++ * Copyright (c) 2026 HiSilicon (Shanghai) Technologies CO., LIMITED.
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++/*
++ * AOV PoC 平台电源管理钩子（阶段4 K4/B1 第一步）
++ *
++ * 1. 覆写内核 WEAK OsIdleTask：无 PM 锁时自动进入 LOS_PmSuspend
++ *    （休眠自动进入机制，whole-archive 链接保证 strong 符号生效）；
++ *    SMP 从核保持 WFI park（从核深睡 park 为阶段4第三步课题）。
++ * 2. 注册 LosPmSysctrl：early/late 挂 suspend/resume 耗时计量，
++ *    normal/lightSuspend 第一阶段为静默 WFI（时钟门控/DDR 序列待
++ *    CRG/PMU 资料后在本文件填充，见方案设计 B1）。
++ * 3. 休眠档位经既有 /proc/power/power_mode 切换（normal/light/deep），
++ *    PM 锁经 /proc/power/power_lock（powermgr_lite RunningLock 已对接）。
++ */
++
++#include "los_pm.h"
++#include "los_sys.h"
++#include "los_printf.h"
++#include "los_hw_cpu.h"
++#include "hal_timer.h"
++#include "los_sys_pri.h"
++
++#ifdef LOSCFG_KERNEL_PM
++
++#define PM_STAT_DUMP_PERIOD 64
++#define PM_CYCLES_PER_SEC   (OS_CYCLE_PER_TICK * LOSCFG_BASE_CORE_TICK_PER_SECOND)
++
++STATIC UINT32 g_pmSuspendCount = 0;
++STATIC UINT32 g_pmSuspendTotalMs = 0;
++STATIC UINT32 g_pmSuspendMaxMs = 0;
++STATIC UINT32 g_pmEarlyTick = 0;
++STATIC BOOL g_pmSysctrlInited = FALSE;
++
++/* AOV T4b：DEEP 休眠时间 offset 补偿。RTC epoch 读取由 rtc 驱动导出（weak 引用，
++ * 未编入 rtc 驱动的平台自动退化为不补偿）。第一阶段 deepSuspend=WFI+计时框架
++ * （CNTPCT 不停走，offset 增量≈0，机制自校验）；第三步真实电源域关断（CNTPCT
++ * 掉电）后由 RTC 差值补偿丢失 cycles，保证录像时间轴跨深睡连续。 */
++extern int Hi35xxRtcReadEpoch(long long *epochSec) __attribute__((weak));
++
++STATIC UINT64 g_pmDeepStartCycle = 0;
++STATIC long long g_pmDeepStartEpoch = -1;
++
++STATIC UINT32 HiPmEarlySuspend(UINT32 mode)
++{
++    (VOID)mode;
++    g_pmEarlyTick = (UINT32)LOS_TickCountGet();
++    return LOS_OK;
++}
++
++STATIC VOID HiPmLateResume(UINT32 mode)
++{
++    UINT32 cost;
++
++    (VOID)mode;
++    cost = (UINT32)LOS_TickCountGet() - g_pmEarlyTick;
++    g_pmSuspendCount++;
++    g_pmSuspendTotalMs += cost;
++    if (cost > g_pmSuspendMaxMs) {
++        g_pmSuspendMaxMs = cost;
++    }
++    if ((g_pmSuspendCount % PM_STAT_DUMP_PERIOD) == 0) {
++        PRINTK("[AOV-PM] suspends=%u last=%ums avg=%ums max=%ums locks=%u\n",
++            g_pmSuspendCount, cost, g_pmSuspendTotalMs / g_pmSuspendCount,
++            g_pmSuspendMaxMs, LOS_PmLockCountGet());
++    }
++}
++
++STATIC UINT32 HiPmNormalSuspend(VOID)
++{
++    WFI;
++    return LOS_OK;
++}
++
++/* 第一阶段 light 实现：完整 sysctrl 时序 + WFI；时钟门控序列留待 CRG 资料 */
++STATIC UINT32 HiPmLightSuspend(VOID)
++{
++    WFI;
++    return LOS_OK;
++}
++
++STATIC UINT32 HiPmDeepSuspend(VOID)
++{
++    g_pmDeepStartCycle = HalClockGetCycles();
++    g_pmDeepStartEpoch = -1;
++    if (Hi35xxRtcReadEpoch != NULL) {
++        (void)Hi35xxRtcReadEpoch(&g_pmDeepStartEpoch);
++    }
++    /* 第三步在此插入电源域关断序列（依赖海思低功耗 SDK，NDA） */
++    WFI;
++    return LOS_OK;
++}
++
++STATIC VOID HiPmDeepResume(VOID)
++{
++    long long epochNow = -1;
++    UINT64 elapsedCycle;
++    UINT64 rtcElapsedCycle;
++
++    if ((g_pmDeepStartEpoch < 0) || (Hi35xxRtcReadEpoch == NULL)) {
++        return;
++    }
++    if (Hi35xxRtcReadEpoch(&epochNow) != 0) {
++        return;
++    }
++    elapsedCycle = HalClockGetCycles() - g_pmDeepStartCycle;
++    rtcElapsedCycle = (UINT64)(epochNow - g_pmDeepStartEpoch) * PM_CYCLES_PER_SEC;
++    if (rtcElapsedCycle > elapsedCycle) {
++        LOS_PmTimeOffsetAdd(rtcElapsedCycle - elapsedCycle);
++        PRINTK("[AOV-PM] deep resume: offset +%u cycles (rtc %ds)\n",
++            (UINT32)(rtcElapsedCycle - elapsedCycle), (int)(epochNow - g_pmDeepStartEpoch));
++    }
++}
++
++STATIC LosPmSysctrl g_hiPmSysctrl = {
++    .early          = HiPmEarlySuspend,
++    .late           = HiPmLateResume,
++    .normalSuspend  = HiPmNormalSuspend,
++    .lightSuspend   = HiPmLightSuspend,
++    .deepSuspend    = HiPmDeepSuspend,
++    .deepResume     = HiPmDeepResume,
++};
++
++STATIC VOID HiPmSysctrlRegister(VOID)
++{
++    UINT32 ret;
++
++    if (g_pmSysctrlInited) {
++        return;
++    }
++    g_pmSysctrlInited = TRUE;
++    ret = LOS_PmRegister(LOS_PM_TYPE_SYSCTRL, &g_hiPmSysctrl);
++    PRINTK("[AOV-PM] sysctrl registered ret=0x%x, mode switch: /proc/power/power_mode\n", ret);
++}
++
++LITE_OS_SEC_TEXT VOID OsIdleTask(VOID)
++{
++#ifdef LOSCFG_KERNEL_SMP
++    if (ArchCurrCpuid() != 0) {
++        while (1) {
++            WFI;
++        }
++    }
++#endif
++
++    /* idle 任务在内核模块初始化（含 OsPmInit）完成后才运行，注册时序安全 */
++    HiPmSysctrlRegister();
++
++    while (1) {
++        /* K1 分档锁：Suspend 内部完成分档否决/降级与竞态二次检查；
++         * NORMAL 档被否决（返回 NOK）时退化为裸 WFI（与基线行为一致） */
++        if (LOS_PmSuspend(0) != LOS_OK) {
++            WFI;
++        }
++    }
++}
++
++#endif /* LOSCFG_KERNEL_PM */
+diff --git a/common/platform/rtc/rtc_hi35xx.c b/common/platform/rtc/rtc_hi35xx.c
+index 994ef614..1f0571da 100644
+--- a/common/platform/rtc/rtc_hi35xx.c
++++ b/common/platform/rtc/rtc_hi35xx.c
+@@ -23,6 +23,7 @@
+ #include "rtc_base.h"
+ #include "rtc_core.h"
+ #include "rtc_hi35xx.h"
++#include <sys/time.h>
+ 
+ #define HDF_LOG_TAG rtc_hi35xx
+ 
+@@ -798,6 +799,139 @@ static int32_t HiRtcBind(struct HdfDeviceObject *device)
+     return HDF_SUCCESS;
+ }
+ 
++/* ==== AOV PoC T4：开机 RTC→系统时间校时 + NTP 校时后系统时间→RTC 回写 ==== */
++#define RTC_TIME_YEAR_START      1970
++#define RTC_TIME_YEAR_END        2099
++#define SEC_PER_MIN              60
++#define SEC_PER_HOUR             3600
++#define SEC_PER_DAY              86400
++#define USEC_PER_MSEC            1000
++#define DAYS_PER_WEEK            7
++#define RTC_WEEKDAY_EPOCH_OFFSET 3  /* 1970-01-01 为周四，(days+3)%7+1 → 1-7=Mon-Sun */
++
++static struct RtcHost *g_rtcTimeSyncHost = NULL;
++
++/* civil <-> epoch 天数互转（Howard Hinnant 算法），不依赖内核侧 mktime/gmtime */
++static long long HiRtcCivilToDays(long long y, long long m, long long d)
++{
++    long long era;
++    unsigned int yoe;
++    unsigned int doy;
++    unsigned int doe;
++
++    y -= (m <= 2) ? 1 : 0;
++    era = (y >= 0 ? y : y - 399) / 400;              /* [0,146097) 天为一个 era */
++    yoe = (unsigned int)(y - era * 400);             /* [0,399] */
++    doy = (unsigned int)(153 * (m + (m > 2 ? -3 : 9)) + 2) / 5 + (unsigned int)d - 1; /* [0,365] */
++    doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;     /* [0,146096] */
++    return era * 146097 + (long long)doe - 719468;   /* 1970-01-01 = 0 */
++}
++
++static void HiRtcDaysToCivil(long long z, long long *y, long long *m, long long *d)
++{
++    long long era;
++    long long yy;
++    unsigned int doe;
++    unsigned int yoe;
++    unsigned int doy;
++    unsigned int mp;
++    unsigned int mm;
++
++    z += 719468;
++    era = (z >= 0 ? z : z - 146096) / 146097;
++    doe = (unsigned int)(z - era * 146097);          /* [0,146096] */
++    yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365; /* [0,399] */
++    yy = (long long)yoe + era * 400;
++    doy = doe - (365 * yoe + yoe / 4 - yoe / 100);   /* [0,365] */
++    mp = (5 * doy + 2) / 153;                        /* [0,11], 0=Mar */
++    *d = (long long)(doy - (153 * mp + 2) / 5 + 1);
++    mm = mp + (mp < 10 ? 3 : (unsigned int)-9);      /* [1,12] */
++    *m = (long long)mm;
++    *y = yy + (mm <= 2 ? 1 : 0);
++}
++
++static void HiRtcSyncSystemTime(struct RtcHost *host)
++{
++    struct RtcTime rt;
++    struct timeval tv;
++    long long days;
++
++    if (HiRtcReadTime(host, &rt) != HDF_SUCCESS) {
++        HDF_LOGE("[AOV-TIME] boot sync: read rtc fail");
++        return;
++    }
++    if (rt.year < RTC_TIME_YEAR_START || rt.year > RTC_TIME_YEAR_END) {
++        HDF_LOGI("[AOV-TIME] boot sync skipped: rtc not set (year=%u)", rt.year);
++        return;
++    }
++    days = HiRtcCivilToDays(rt.year, rt.month, rt.day);
++    tv.tv_sec = (time_t)(days * SEC_PER_DAY + rt.hour * SEC_PER_HOUR + rt.minute * SEC_PER_MIN + rt.second);
++    tv.tv_usec = (suseconds_t)((unsigned int)rt.millisecond * USEC_PER_MSEC);
++    if (settimeofday(&tv, NULL) == 0) {
++        HDF_LOGI("[AOV-TIME] boot sync ok: %u-%u-%u %u:%u:%u",
++            rt.year, rt.month, rt.day, rt.hour, rt.minute, rt.second);
++    } else {
++        HDF_LOGE("[AOV-TIME] boot sync: settimeofday fail");
++    }
++}
++
++/* 供 lwip SNTP 校时回调弱引用调用（fixme.c LwipSntpSetSystemTime）：系统时间→RTC */
++int Hi35xxRtcWriteSysTime(void)
++{
++    struct RtcTime rt = {0};
++    struct timeval tv;
++    long long y;
++    long long m;
++    long long d;
++    long long days;
++    unsigned int rem;
++
++    if (g_rtcTimeSyncHost == NULL) {
++        return HDF_FAILURE;
++    }
++    if (gettimeofday(&tv, NULL) != 0) {
++        return HDF_FAILURE;
++    }
++    days = (long long)tv.tv_sec / SEC_PER_DAY;
++    rem = (unsigned int)((long long)tv.tv_sec % SEC_PER_DAY);
++    HiRtcDaysToCivil(days, &y, &m, &d);
++    rt.year = (uint16_t)y;
++    rt.month = (uint8_t)m;
++    rt.day = (uint8_t)d;
++    rt.weekday = (uint8_t)((days + RTC_WEEKDAY_EPOCH_OFFSET) % DAYS_PER_WEEK + 1); /* 1-7=Mon-Sun */
++    rt.hour = (uint8_t)(rem / SEC_PER_HOUR);
++    rt.minute = (uint8_t)((rem % SEC_PER_HOUR) / SEC_PER_MIN);
++    rt.second = (uint8_t)(rem % SEC_PER_MIN);
++    rt.millisecond = 0;
++    if (HiRtcWriteTime(g_rtcTimeSyncHost, &rt) != HDF_SUCCESS) {
++        HDF_LOGE("[AOV-TIME] ntp writeback rtc fail");
++        return HDF_FAILURE;
++    }
++    HDF_LOGI("[AOV-TIME] ntp writeback rtc ok");
++    return HDF_SUCCESS;
++}
++
++/* AOV T4b：读 RTC 为 epoch 秒，供 pm 平台 deep 钩子（pm_hi35xx.c）弱引用，
++ * 计算深睡期间 CNTPCT 丢失的时间并补偿内核 offset */
++int Hi35xxRtcReadEpoch(long long *epochSec)
++{
++    struct RtcTime rt;
++    long long days;
++
++    if ((g_rtcTimeSyncHost == NULL) || (epochSec == NULL)) {
++        return HDF_FAILURE;
++    }
++    if (HiRtcReadTime(g_rtcTimeSyncHost, &rt) != HDF_SUCCESS) {
++        return HDF_FAILURE;
++    }
++    if (rt.year < RTC_TIME_YEAR_START || rt.year > RTC_TIME_YEAR_END) {
++        return HDF_FAILURE;
++    }
++    days = HiRtcCivilToDays(rt.year, rt.month, rt.day);
++    *epochSec = days * SEC_PER_DAY + rt.hour * SEC_PER_HOUR + rt.minute * SEC_PER_MIN + rt.second;
++    return HDF_SUCCESS;
++}
++
+ static int32_t HiRtcInit(struct HdfDeviceObject *device)
+ {
+     struct RtcHost *host = NULL;
+@@ -834,6 +968,8 @@ static int32_t HiRtcInit(struct HdfDeviceObject *device)
+ 
+     host->method = &g_method;
+     host->data = rtcInfo;
++    g_rtcTimeSyncHost = host;
++    HiRtcSyncSystemTime(host); /* AOV T4: 开机 RTC→系统时间（录像时间轴起点） */
+     HDF_LOGI("Hdf dev service:%s init success!", HdfDeviceGetServiceName(device));
+     return HDF_SUCCESS;
+ }
+diff --git a/hi3516dv300/sdk_liteos/mpp/module_init/src/sdk_init.c b/hi3516dv300/sdk_liteos/mpp/module_init/src/sdk_init.c
+index 95a26065..fe63ddf4 100644
+--- a/hi3516dv300/sdk_liteos/mpp/module_init/src/sdk_init.c
++++ b/hi3516dv300/sdk_liteos/mpp/module_init/src/sdk_init.c
+@@ -20,6 +20,21 @@
+ #include "fcntl.h"
+ #include "string.h"
+ 
++#include "los_sys.h"
++
++/* AOV PoC T1: TTFF 分段计量——逐 MPP 模块输出 init 耗时（tick=1ms）与返回值 */
++static int TimedInit(const char *name, int (*initFn)(void))
++{
++    unsigned int t0 = (unsigned int)LOS_TickCountGet();
++    int ret = initFn();
++    unsigned int cost = (unsigned int)LOS_TickCountGet() - t0;
++    printf("[TTFF] %-8s cost %u ms ret %d\n", name, cost, ret);
++    if (ret != 0) {
++        printf("%s init error.\n", name);
++    }
++    return ret;
++}
++
+ #ifdef __cplusplus
+ #if __cplusplus
+ extern "C" {
+@@ -328,35 +343,17 @@ static void insert_audio(void)
+ {
+     int ret;
+ 
+-    ret = AiaoMod_init();
+-    if (ret != 0) {
+-        printf("aiao init error.\n");
+-    }
++    ret = TimedInit("AiaoMod", AiaoMod_init);
+ 
+-    ret = AiMod_init();
+-    if (ret != 0) {
+-        printf("ai init error.\n");
+-    }
++    ret = TimedInit("AiMod", AiMod_init);
+ 
+-    ret = AoMod_init();
+-    if (ret != 0) {
+-        printf("ao init error.\n");
+-    }
++    ret = TimedInit("AoMod", AoMod_init);
+ 
+-    ret = AencMod_init();
+-    if (ret != 0) {
+-        printf("aenc init error.\n");
+-    }
++    ret = TimedInit("AencMod", AencMod_init);
+ 
+-    ret = AdecMod_init();
+-    if (ret != 0) {
+-        printf("adec init error.\n");
+-    }
++    ret = TimedInit("AdecMod", AdecMod_init);
+ 
+-    ret = AcodecMod_init();
+-    if (ret != 0) {
+-        printf("acodec init error.\n");
+-    }
++    ret = TimedInit("AcodecMod", AcodecMod_init);
+ }
+ 
+ extern void osal_proc_init(void);
+@@ -369,142 +366,61 @@ void SDK_init(void)
+ 
+     osal_proc_init();
+ 
+-    ret = MMZ_init();
+-    if (ret != 0) {
+-        printf("MMZ init error.\n");
+-    }
++    ret = TimedInit("MMZ", MMZ_init);
+ 
+-    ret = BASE_init();
+-    if (ret != 0) {
+-        printf("base init error.\n");
+-    }
++    ret = TimedInit("BASE", BASE_init);
+ 
+-    ret = SYS_init();
+-    if (ret != 0) {
+-        printf("sys init error.\n");
+-    }
++    ret = TimedInit("SYS", SYS_init);
+ 
+-    ret = RGN_init();
+-    if (ret != 0) {
+-        printf("rgn init error.\n");
+-    }
++    ret = TimedInit("RGN", RGN_init);
+ 
+-    ret = GDC_init();
+-    if (ret != 0) {
+-        printf("gdc init error.\n");
+-    }
++    ret = TimedInit("GDC", GDC_init);
+ 
+-    ret = VGS_init();
+-    if (ret != 0) {
+-        printf("vgs init error.\n");
+-    }
++    ret = TimedInit("VGS", VGS_init);
+ 
+-    ret = DIS_init();
+-    if (ret != 0) {
+-        printf("vgs init error.\n");
+-    }
++    ret = TimedInit("DIS", DIS_init);
+ 
+-    ret = VI_init();
+-    if (ret != 0) {
+-        printf("vi init error.\n");
+-    }
++    ret = TimedInit("VI", VI_init);
+ 
+-    ret = ISP_init();
+-    if (ret != 0) {
+-        printf("isp init error.\n");
+-    }
++    ret = TimedInit("ISP", ISP_init);
+ 
+-    ret = VPSS_init();
+-    if (ret != 0) {
+-        printf("vpss init error.\n");
+-    }
++    ret = TimedInit("VPSS", VPSS_init);
+ 
+-    ret = VO_init();
+-    if (ret != 0) {
+-        printf("vo init error.\n");
+-    }
++    ret = TimedInit("VO", VO_init);
+ 
+-    ret = CHNL_init();
+-    if (ret != 0) {
+-        printf("chnl init error.\n");
+-    }
++    ret = TimedInit("CHNL", CHNL_init);
+ 
+-    ret = VEDU_init();
+-    if (ret != 0) {
+-        printf("vedu init error.\n");
+-    }
++    ret = TimedInit("VEDU", VEDU_init);
+ 
+-    ret = RC_init();
+-    if (ret != 0) {
+-        printf("rc init error.\n");
+-    }
++    ret = TimedInit("RC", RC_init);
+ 
+-    ret = VENC_init();
+-    if (ret != 0) {
+-        printf("venc init error.\n");
+-    }
++    ret = TimedInit("VENC", VENC_init);
+ 
+-    ret = H264e_init();
+-    if (ret != 0) {
+-        printf("H264e init error.\n");
+-    }
++    ret = TimedInit("H264e", H264e_init);
+ 
+-    ret = H265e_init();
+-    if (ret != 0) {
+-        printf("H265e init error.\n");
+-    }
++    ret = TimedInit("H265e", H265e_init);
+ 
+-    ret = JPEGE_init();
+-    if (ret != 0) {
+-        printf("jpege init error.\n");
+-    }
++    ret = TimedInit("JPEGE", JPEGE_init);
+ 
+-    ret = JPEGD_init();
+-    if (ret != 0) {
+-        printf("jpegd init error.\n");
+-    }
++    ret = TimedInit("JPEGD", JPEGD_init);
+ 
+-    ret = VFMW_init();
+-    if (ret != 0) {
+-        printf("vfmw init error.\n");
+-    }
++    ret = TimedInit("VFMW", VFMW_init);
+ 
+-    ret = VDEC_init();
+-    if (ret != 0) {
+-        printf("vdec init error.\n");
+-    }
++    ret = TimedInit("VDEC", VDEC_init);
+ 
+-    ret = IVE_init();
+-    if (ret != 0) {
+-        printf("ive init error.\n");
+-    }
++    ret = TimedInit("IVE", IVE_init);
+ 
+-    ret = NNIE_init();
+-    if (ret != 0) {
+-        printf("nnie init error.\n");
+-    }
++    ret = TimedInit("NNIE", NNIE_init);
+ 
+-    ret = TDE_init();
+-    if (ret != 0) {
+-        printf("TDE init error.\n");
+-    }
++    ret = TimedInit("TDE", TDE_init);
+ 
+-    ret =  HIFB_init();
+-    if (ret != 0) {
+-        printf("HIFB_init error.\n");
+-    }
++    ret = TimedInit("HIFB", HIFB_init);
+ 
+     insert_audio();
+ 
+-    ret = PWM_init();
+-    if (ret != 0) {
+-        printf("pwm init error.\n");
+-    }
++    ret = TimedInit("PWM", PWM_init);
+ 
+-    ret = PIRIS_init();
+-    if (ret != 0) {
+-        printf("piris init error.\n");
+-    }
++    ret = TimedInit("PIRIS", PIRIS_init);
+ #ifndef LOSCFG_DRIVERS_HDF_PLATFORM_SPI
+ #ifdef LOSCFG_DRIVERS_SPI
+     dprintf("spi bus init ...\n");
+@@ -521,25 +437,13 @@ void SDK_init(void)
+ #endif
+ #endif
+ 
+-    ret = hi_sensor_i2c_init();
+-    if (ret != 0) {
+-        printf("sensor i2c init error.\n");
+-    }
++    ret = TimedInit("hi_sensor_i2c", hi_sensor_i2c_init);
+ 
+-    ret = hi_sensor_spi_init();
+-    if (ret != 0) {
+-        printf("sensor spi init error.\n");
+-    }
++    ret = TimedInit("hi_sensor_spi", hi_sensor_spi_init);
+ 
+-    ret = HDMI_init();
+-    if (ret != 0) {
+-        printf("hdmi init error.\n");
+-    }
++    ret = TimedInit("HDMI", HDMI_init);
+ 
+-    ret = MIPI_RX_init();
+-    if (ret != 0) {
+-        printf("mipi_rx init error.\n");
+-    }
++    ret = TimedInit("MIPI_RX", MIPI_RX_init);
+ 
+ #ifndef LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_DSI
+     int smooth = 0;
+@@ -549,15 +453,9 @@ void SDK_init(void)
+     }
+ #endif
+ 
+-    ret = Cipher_init();
+-    if (ret != 0) {
+-        printf("cipher init error.\n");
+-    }
++    ret = TimedInit("Cipher", Cipher_init);
+ 
+-    ret = HI_USER_init();
+-    if (ret != 0) {
+-        printf("hi user init error.\n");
+-    }
++    ret = TimedInit("HI_USER", HI_USER_init);
+ 
+     printf("SDK init ok...\n");
+ }

@@ -1,0 +1,14 @@
+diff --git a/bundle.json b/bundle.json
+index faa1508..8576ad3 100644
+--- a/bundle.json
++++ b/bundle.json
+@@ -47,8 +47,7 @@
+     },
+     "build": {
+       "sub_component": [
+-        "//base/powermgr/battery_lite:batterymgr_lite",
+-        "//base/powermgr/battery_lite/frameworks/js:ace_battery_kits"
++        "//base/powermgr/battery_lite:batterymgr_lite"
+       ],
+       "inner_kits": [],
+       "test": [

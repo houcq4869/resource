@@ -1,0 +1,45 @@
+diff --git a/adapter/khdf/liteos/Kconfig b/adapter/khdf/liteos/Kconfig
+index 05e079f9..6cd43bbc 100644
+--- a/adapter/khdf/liteos/Kconfig
++++ b/adapter/khdf/liteos/Kconfig
+@@ -123,6 +123,14 @@ config DRIVERS_HDF_PLATFORM_RTC
+     help
+       Answer Y to enable HDF platform rtc driver.
+ 
++config DRIVERS_HDF_PLATFORM_PM
++    bool "Enable HDF platform pm hook driver"
++    default n
++    depends on DRIVERS_HDF_PLATFORM
++    help
++      Answer Y to enable hisilicon platform PM hook (AOV: idle auto-suspend
++      and sysctrl registration with suspend/resume instrumentation).
++
+ config DRIVERS_HDF_PLATFORM_SDIO
+     bool "Enable HDF platform sdio driver"
+     default n
+diff --git a/adapter/khdf/liteos/model/storage/src/mtd/mtd_block_lite.c b/adapter/khdf/liteos/model/storage/src/mtd/mtd_block_lite.c
+index 4645745d..2b53cce4 100644
+--- a/adapter/khdf/liteos/model/storage/src/mtd/mtd_block_lite.c
++++ b/adapter/khdf/liteos/model/storage/src/mtd/mtd_block_lite.c
+@@ -116,7 +116,7 @@ struct block_operations *GetDevSpinorOps(void)
+ #define MTD_LITE_BLOCK_DRV_MODE 0755
+ int32_t MtdBlockOsInit(struct MtdDevice *mtdDevice)
+ {
+-    int ret;
++    int ret = 0; /* AOV PoC 基线修复：原未初始化即用于错误日志（-Werror,-Wuninitialized） */
+     const char *devPath = NULL;
+ 
+     if (mtdDevice == NULL) {
+diff --git a/adapter/khdf/liteos/model/storage/src/mtd/mtd_char_lite.c b/adapter/khdf/liteos/model/storage/src/mtd/mtd_char_lite.c
+index 7cb9f9ae..c2adb100 100644
+--- a/adapter/khdf/liteos/model/storage/src/mtd/mtd_char_lite.c
++++ b/adapter/khdf/liteos/model/storage/src/mtd/mtd_char_lite.c
+@@ -99,7 +99,7 @@ static int MtdCharClose(FAR struct file *filep)
+     mtd_partition *partition = (mtd_partition *)drv->priv;
+     struct MtdFileInfo *mfi = (struct MtdFileInfo *)(filep->f_priv);
+     if (mfi == NULL) {
+-        return EFAIL;
++        return -EINVAL; /* AOV PoC 基线修复：原 EFAIL 未定义（仅存在于 hdf_wifi_cmd.h），按本文件负 errno 约定修正 */
+     }
+ 
+     (void)LOS_MuxLock(&partition->lock, LOS_WAIT_FOREVER);

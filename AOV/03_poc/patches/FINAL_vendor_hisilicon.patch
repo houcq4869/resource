@@ -1,0 +1,1861 @@
+diff --git a/hispark_aries/config.json b/hispark_aries/config.json
+index ea74a2d..2a85024 100644
+--- a/hispark_aries/config.json
++++ b/hispark_aries/config.json
+@@ -18,8 +18,8 @@
+       {
+         "subsystem": "hiviewdfx",
+         "components": [
+-          { "component": "hilog", "features":[] },
+-          { "component": "hidumper", "features":[] }
++          { "component": "hilog_lite", "features":[] },
++          { "component": "hidumper_lite", "features":[] }
+         ]
+       },
+       {
+@@ -77,6 +77,12 @@
+           { "component": "liteos_a", "features":[] }
+         ]
+       },
++      {
++        "subsystem": "communication",
++        "components": [
++          { "component": "ipc", "features":[] }
++        ]
++      },
+       {
+         "subsystem": "hdf",
+         "components": [
+@@ -94,13 +100,6 @@
+           { "component": "bundle_framework_lite", "features":[] }
+         ]
+       },
+-      {
+-        "subsystem": "commonlibrary",
+-        "components": [
+-          { "component": "kv_store", "features":[] },
+-          { "component": "os_dump", "features":[] }
+-        ]
+-      },
+       {
+         "subsystem": "xts",
+         "components": [
+@@ -113,6 +112,13 @@
+         "components": [
+           { "component": "ai_engine", "features":[] }
+         ]
++      },
++      {
++        "subsystem": "powermgr",
++        "components": [
++          { "component": "powermgr_lite", "features":[] },
++          { "component": "battery_lite", "features":[] }
++        ]
+       }
+     ],
+     "third_party_dir": "//third_party",
+diff --git a/hispark_aries/kernel_configs/debug.config b/hispark_aries/kernel_configs/debug.config
+index dbff5b2..5aba1e6 100755
+--- a/hispark_aries/kernel_configs/debug.config
++++ b/hispark_aries/kernel_configs/debug.config
+@@ -21,6 +21,7 @@ LOSCFG_DRIVERS_HDF_PLATFORM_GPIO=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_I2C=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_RTC=y
++LOSCFG_DRIVERS_HDF_PLATFORM_PM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_SDIO=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_HISI_SDK=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_SPI=y
+diff --git a/hispark_aries/kernel_configs/release.config b/hispark_aries/kernel_configs/release.config
+index 520151a..cc0e4ad 100755
+--- a/hispark_aries/kernel_configs/release.config
++++ b/hispark_aries/kernel_configs/release.config
+@@ -20,6 +20,7 @@ LOSCFG_DRIVERS_HDF_PLATFORM_GPIO=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_I2C=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_RTC=y
++LOSCFG_DRIVERS_HDF_PLATFORM_PM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_SDIO=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_HISI_SDK=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_SPI=y
+diff --git a/hispark_taurus/BUILD.gn b/hispark_taurus/BUILD.gn
+index 802ce96..3456804 100755
+--- a/hispark_taurus/BUILD.gn
++++ b/hispark_taurus/BUILD.gn
+@@ -2,6 +2,7 @@
+ 
+ group("hispark_taurus") {
+   deps = [
++    "aov_poc",
+     "hals/utils/sys_param:vendor.para",
+     "init_configs:init_configs",
+     "init_configs:init_configs_mksh",
+diff --git a/hispark_taurus/aov_poc/BUILD.gn b/hispark_taurus/aov_poc/BUILD.gn
+new file mode 100644
+index 0000000..b3c825f
+--- /dev/null
++++ b/hispark_taurus/aov_poc/BUILD.gn
+@@ -0,0 +1,44 @@
++# Copyright (c) 2026 HiSilicon (Shanghai) Technologies CO., LIMITED.
++# Licensed under the Apache License, Version 2.0 (the "License");
++# you may not use this file except in compliance with the License.
++# You may obtain a copy of the License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the License is distributed on an "AS IS" BASIS,
++# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++# See the License for the specific language governing permissions and
++# limitations under the License.
++
++import("//build/lite/config/component/lite_component.gni")
++
++executable("aov_poc") {
++  output_name = "aov_poc"
++  sources = [ "aov_poc.c" ]
++
++  include_dirs = [
++    "//device/soc/hisilicon/hi3516dv300/sdk_liteos/include",
++    "//third_party/bounds_checking_function/include",
++  ]
++
++  mpp_lib_dir = rebase_path("//device/soc/hisilicon/hi3516dv300/sdk_liteos/mpp/lib")
++  ldflags = [
++    "-L$mpp_lib_dir",
++    "-lmpi",
++    "-lisp",
++    "-lsns_imx335",
++    "-l_hiae",
++    "-l_hiawb",
++    "-l_hiacs",
++    "-l_hicalcflicker",
++    "-ldnvqe",
++    "-lupvqe",
++    "-lVoiceEngine",
++    "-lsecurec",
++    "-l_hidehaze",
++    "-l_hidrc",
++    "-l_hildci",
++    "-l_hiir_auto",
++  ]
++}
+diff --git a/hispark_taurus/aov_poc/aov_poc.c b/hispark_taurus/aov_poc/aov_poc.c
+new file mode 100644
+index 0000000..21ffebf
+--- /dev/null
++++ b/hispark_taurus/aov_poc/aov_poc.c
+@@ -0,0 +1,669 @@
++/*
++ * Copyright (c) 2026 HiSilicon (Shanghai) Technologies CO., LIMITED.
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++/*
++ * AOV PoC T5：值守单帧循环业务骨架（阶段4 §3.5 落地载体）
++ *
++ * 循环（值守态，间隔可配 0.5~4s）：
++ *   SNAP 单帧触发 → VENC 取流 → MD 检测(桩) → 攒批缓存 → 满批/定时 flush 落盘(fsync)
++ *   → sleep(interval)【期间内核 idle PM 钩子自动挂起 CPU，T2/T3 链路】
++ *   MD 命中 → ACTIVE 突发：连续取流 N 秒(滞回) → 回值守
++ *
++ * 运行方式（PoC 手动启动，不进 init cfg）：
++ *   aov_poc [-i 值守间隔秒] [-d 总时长秒,0=无限] [-o 输出目录]
++ * 前置：media_server 可并存（不打开 camera 客户端即无管线冲突）；SD 卡已挂载 /sdcard。
++ *
++ * 硬件联调项（代码内以 [TUNE] 标注）：
++ *   1. MIPI RX/sensor 时钟配置：本骨架未调用 MIPI RX attr API（user 态头 hi_mipi.h 在位，
++ *      但 lane/时钟参数依赖板级联调；若 camera HAL 未预配置需在此补齐）
++ *   2. SNAP 模式下 ISP 3A 策略：当前 ISP Run 线程常驻（保出图）；功耗优化第二步切
++ *      RunOnce + 曝光参数缓存（kol Fast AE 模式，阶段1报告 §2.2）
++ *   3. sensor standby/restart：pfnStandby 钩子在预编译 libsns 内，触发路径联调期确认
++ *   4. MD 检测：当前为桩（固定间隔缩时模式，业界有效形态之一）；第二步接 libmd/IVE/NNIE
++ */
++
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <unistd.h>
++#include <fcntl.h>
++#include <signal.h>
++#include <pthread.h>
++#include <getopt.h>
++#include <time.h>
++#include <sys/time.h>
++#include <sys/stat.h>
++#include <sys/types.h>
++
++#include "hi_common.h"
++#include "hi_comm_video.h"
++#include "hi_comm_vi.h"
++#include "hi_comm_isp.h"
++#include "hi_comm_sns.h"
++#include "hi_sns_ctrl.h"
++#include "hi_comm_venc.h"
++#include "hi_comm_snap.h"
++#include "hi_comm_3a.h"
++#include "hi_ae_comm.h"
++#include "hi_awb_comm.h"
++#include "mpi_sys.h"
++#include "mpi_vi.h"
++#include "mpi_isp.h"
++#include "mpi_ae.h"
++#include "mpi_awb.h"
++#include "mpi_venc.h"
++#include "mpi_snap.h"
++#include "mpi_vb.h"
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C" {
++#endif
++#endif
++
++/* imx335 sensor 对象（libsns_imx335 导出，sample_comm_isp 同款引用） */
++extern ISP_SNS_OBJ_S stSnsImx335Obj;
++
++/* ==================== 配置宏（[TUNE] 联调期按实测调整） ==================== */
++#define AOV_VI_DEV              0
++#define AOV_VI_PIPE             0
++#define AOV_VI_CHN              0
++#define AOV_VENC_CHN            0
++
++#define AOV_SNS_WIDTH           2592   /* imx335 4M sensor 全尺寸 */
++#define AOV_SNS_HEIGHT          1944
++#define AOV_PIC_WIDTH           1920   /* 值守/事件编码尺寸 [TUNE] */
++#define AOV_PIC_HEIGHT          1080
++#define AOV_FPS                 30
++
++#define AOV_BITRATE_KBPS        512    /* 值守低码率 [TUNE]：1fps 缩时下实际码率远低于此上限 */
++#define AOV_GOP                 60
++#define AOV_VENC_BUF_SIZE       (512 * 1024)
++
++#define AOV_BATCH_BYTES         (1024 * 1024)          /* 攒批 1MB 落盘（kol 同款策略） */
++#define AOV_SEGMENT_FRAMES      3600                   /* 每段文件帧数上限（缩时 1fps≈1h/段） */
++#define AOV_OUT_DIR_DEFAULT     "/sdcard/aov"
++#define AOV_OUT_NAME_LEN        128
++
++#define AOV_INTERVAL_DEFAULT_S  1                      /* 值守间隔（0.5~4s 可配） */
++#define AOV_ACTIVE_DURATION_S   15                     /* 事件突发录像时长 */
++#define AOV_ACTIVE_HYSTERESIS   5                      /* 连续 N 帧无目标退回值守（业界同款） */
++#define AOV_STAT_PERIOD         64                     /* 每 64 周期打印统计 */
++
++#define AOV_GETSTREAM_TIMEOUT   500                    /* ms */
++#define AOV_CHECK_RET(expr, fmt, ...) do { \
++    HI_S32 _s32Ret = (expr); \
++    if (_s32Ret != HI_SUCCESS) { \
++        printf("[AOV] " fmt " failed ret=0x%x @%s:%d\n", ##__VA_ARGS__, _s32Ret, __func__, __LINE__); \
++        return _s32Ret; \
++    } \
++} while (0)
++
++/* ==================== 全局状态 ==================== */
++static volatile int g_aovRunning = 1;
++static pthread_t g_ispThread;
++static int g_ispThreadStarted = 0;
++
++typedef struct {
++    int intervalMs;         /* 值守间隔 */
++    int durationS;          /* 总时长（0=无限） */
++    char outDir[AOV_OUT_NAME_LEN];
++    /* 运行统计 */
++    unsigned long cycles;
++    unsigned long frames;
++    unsigned long bytes;
++    unsigned long flushes;
++    unsigned long activeEntries;
++    unsigned int cycleCostMaxMs;
++    /* 攒批缓存 */
++    unsigned char *batchBuf;
++    unsigned int batchLen;
++    unsigned int segFrames;
++    unsigned int segIndex;
++} AovCtx;
++
++static AovCtx g_ctx;
++
++/* ==================== ISP ==================== */
++static void *AovIspRunThread(void *arg)
++{
++    (void)arg;
++    /* [TUNE] 第二步：值守期改 HI_MPI_ISP_RunOnce + 曝光缓存（kol Fast AE），降 3A 常驻功耗 */
++    if (HI_MPI_ISP_Run(AOV_VI_PIPE) != HI_SUCCESS) {
++        printf("[AOV] isp run exit abnormally\n");
++    }
++    return NULL;
++}
++
++static HI_S32 AovIspSetup(void)
++{
++    HI_S32 s32Ret;
++    ALG_LIB_S stAeLib;
++    ALG_LIB_S stAwbLib;
++    ISP_SNS_ATTR_INFO_S stSnsAttrInfo;
++    ISP_PUB_ATTR_S stPubAttr;
++    pthread_attr_t attr;
++
++    /* AE/AWB 算法库注册（sample_comm_isp 同款） */
++    stAeLib.s32Id = AOV_VI_PIPE;
++    stAwbLib.s32Id = AOV_VI_PIPE;
++    (void)strncpy(stAeLib.acLibName, HI_AE_LIB_NAME, sizeof(stAeLib.acLibName) - 1);
++    (void)strncpy(stAwbLib.acLibName, HI_AWB_LIB_NAME, sizeof(stAwbLib.acLibName) - 1);
++    AOV_CHECK_RET(HI_MPI_AE_Register(AOV_VI_PIPE, &stAeLib), "AE register");
++    AOV_CHECK_RET(HI_MPI_AWB_Register(AOV_VI_PIPE, &stAwbLib), "AWB register");
++
++    /* sensor 总线与回调注册 */
++    (void)memset(&stSnsAttrInfo, 0, sizeof(stSnsAttrInfo));
++    stSnsAttrInfo.eSensorId = 0;     /* [TUNE] sensor id 按板级配置 */
++    if (stSnsImx335Obj.pfnSetBusInfo != HI_NULL) {
++        ISP_SNS_COMMBUS_U uBus;
++        (void)memset(&uBus, 0, sizeof(uBus));
++        uBus.s8I2cDev = 0;           /* [TUNE] i2c dev 号按板级（hcs sensor 配置）*/
++        s32Ret = stSnsImx335Obj.pfnSetBusInfo(AOV_VI_PIPE, uBus);
++        if (s32Ret != HI_SUCCESS) {
++            printf("[AOV] sns set bus failed 0x%x\n", s32Ret);
++        }
++    }
++    if (stSnsImx335Obj.pfnRegisterCallback != HI_NULL) {
++        AOV_CHECK_RET(stSnsImx335Obj.pfnRegisterCallback(AOV_VI_PIPE, &stAeLib, &stAwbLib),
++            "sns reg callback");
++    }
++    AOV_CHECK_RET(HI_MPI_ISP_SensorRegCallBack(AOV_VI_PIPE, &stSnsAttrInfo, &stSnsImx335Obj),
++        "isp sensor regcb");
++
++    /* ISP pub attr：imx335 4M -> 输出窗口全幅 [TUNE] 值守可缩小 */
++    (void)memset(&stPubAttr, 0, sizeof(stPubAttr));
++    stPubAttr.stWndRect.s32X = 0;
++    stPubAttr.stWndRect.s32Y = 0;
++    stPubAttr.stWndRect.u32Width = AOV_SNS_WIDTH;
++    stPubAttr.stWndRect.u32Height = AOV_SNS_HEIGHT;
++    stPubAttr.stSnsSize.u32Width = AOV_SNS_WIDTH;
++    stPubAttr.stSnsSize.u32Height = AOV_SNS_HEIGHT;
++    stPubAttr.f32FrameRate = (HI_FLOAT)AOV_FPS;
++    stPubAttr.enBayer = BAYER_RGGB;
++    stPubAttr.enWDRMode = WDR_MODE_NONE;
++    AOV_CHECK_RET(HI_MPI_ISP_SetPubAttr(AOV_VI_PIPE, &stPubAttr), "isp set pub attr");
++
++    AOV_CHECK_RET(HI_MPI_ISP_MemInit(AOV_VI_PIPE), "isp mem init");
++    AOV_CHECK_RET(HI_MPI_ISP_Init(AOV_VI_PIPE), "isp init");
++
++    (void)pthread_attr_init(&attr);
++    s32Ret = pthread_create(&g_ispThread, &attr, AovIspRunThread, NULL);
++    (void)pthread_attr_destroy(&attr);
++    if (s32Ret != 0) {
++        printf("[AOV] isp thread create failed %d\n", s32Ret);
++        return HI_FAILURE;
++    }
++    g_ispThreadStarted = 1;
++    return HI_SUCCESS;
++}
++
++static void AovIspStop(void)
++{
++    ALG_LIB_S stAeLib;
++    ALG_LIB_S stAwbLib;
++
++    if (!g_ispThreadStarted) {
++        return;
++    }
++    (void)HI_MPI_ISP_Exit(AOV_VI_PIPE);
++    (void)pthread_join(g_ispThread, NULL);
++    g_ispThreadStarted = 0;
++
++    stAeLib.s32Id = AOV_VI_PIPE;
++    stAwbLib.s32Id = AOV_VI_PIPE;
++    (void)strncpy(stAeLib.acLibName, HI_AE_LIB_NAME, sizeof(stAeLib.acLibName) - 1);
++    (void)strncpy(stAwbLib.acLibName, HI_AWB_LIB_NAME, sizeof(stAwbLib.acLibName) - 1);
++    if (stSnsImx335Obj.pfnUnRegisterCallback != HI_NULL) {
++        (void)stSnsImx335Obj.pfnUnRegisterCallback(AOV_VI_PIPE, &stAeLib, &stAwbLib);
++    }
++    (void)HI_MPI_AWB_UnRegister(AOV_VI_PIPE, &stAwbLib);
++    (void)HI_MPI_AE_UnRegister(AOV_VI_PIPE, &stAeLib);
++}
++
++/* ==================== VI（dev/pipe/snap/chn） ==================== */
++static HI_S32 AovViStart(void)
++{
++    VI_DEV_ATTR_S stDevAttr;
++    VI_PIPE_ATTR_S stPipeAttr;
++    VI_CHN_ATTR_S stChnAttr;
++    SNAP_ATTR_S stSnapAttr;
++
++    /* [TUNE] MIPI RX attr 未配置：若 camera HAL 未预先配置 MIPI/lane，
++     * 需按 hi_mipi.h + 板级 imx335 4lane 参数在此补齐（硬件联调项 #1） */
++
++    (void)memset(&stDevAttr, 0, sizeof(stDevAttr));
++    stDevAttr.enIntfMode = VI_MODE_MIPI;
++    stDevAttr.enWorkMode = VI_WORK_MODE_1Multiplex;
++    stDevAttr.enScanMode = VI_SCAN_PROGRESSIVE;
++    stDevAttr.as32AdChnId[0] = -1;
++    stDevAttr.as32AdChnId[1] = -1;
++    stDevAttr.as32AdChnId[2] = -1;
++    AOV_CHECK_RET(HI_MPI_VI_SetDevAttr(AOV_VI_DEV, &stDevAttr), "vi set dev attr");
++    AOV_CHECK_RET(HI_MPI_VI_EnableDev(AOV_VI_DEV), "vi enable dev");
++
++    (void)memset(&stPipeAttr, 0, sizeof(stPipeAttr));
++    stPipeAttr.enPipeBypassMode = VI_PIPE_BYPASS_NONE;
++    stPipeAttr.bYuvSkip = HI_FALSE;
++    stPipeAttr.bIspBypass = HI_FALSE;
++    stPipeAttr.u32MaxW = AOV_SNS_WIDTH;
++    stPipeAttr.u32MaxH = AOV_SNS_HEIGHT;
++    stPipeAttr.enPixFmt = PIXEL_FORMAT_RGB_BAYER_10BPP;
++    stPipeAttr.enCompressMode = COMPRESS_MODE_NONE;
++    stPipeAttr.enBitWidth = DATA_BITWIDTH_10;
++    stPipeAttr.bNrEn = HI_FALSE;
++    stPipeAttr.bSharpenEn = HI_FALSE;
++    stPipeAttr.stFrameRate.s32SrcFrameRate = AOV_FPS;
++    stPipeAttr.stFrameRate.s32DstFrameRate = AOV_FPS;
++    AOV_CHECK_RET(HI_MPI_VI_CreatePipe(AOV_VI_PIPE, &stPipeAttr), "vi create pipe");
++
++    /* SNAP 属性：普通抓拍、非 ZSL、深度 1、每触发取 1 帧（AOV 单帧核心配置） */
++    (void)memset(&stSnapAttr, 0, sizeof(stSnapAttr));
++    stSnapAttr.enSnapType = SNAP_TYPE_NORMAL;
++    stSnapAttr.bLoadCCM = HI_FALSE;
++    stSnapAttr.stNormalAttr.bZSL = HI_FALSE;
++    stSnapAttr.stNormalAttr.u32FrameDepth = 1;
++    stSnapAttr.stNormalAttr.u32RollbackMs = 0;
++    stSnapAttr.stNormalAttr.u32Interval = 1;
++    AOV_CHECK_RET(HI_MPI_SNAP_SetPipeAttr(AOV_VI_PIPE, &stSnapAttr), "snap set pipe attr");
++    AOV_CHECK_RET(HI_MPI_SNAP_EnablePipe(AOV_VI_PIPE), "snap enable pipe");
++
++    AOV_CHECK_RET(HI_MPI_VI_StartPipe(AOV_VI_PIPE), "vi start pipe");
++
++    (void)memset(&stChnAttr, 0, sizeof(stChnAttr));
++    stChnAttr.stSize.u32Width = AOV_PIC_WIDTH;
++    stChnAttr.stSize.u32Height = AOV_PIC_HEIGHT;
++    stChnAttr.enPixelFormat = PIXEL_FORMAT_YVU_SEMIPLANAR_420;
++    stChnAttr.enDynamicRange = DYNAMIC_RANGE_SDR8;
++    stChnAttr.enVideoFormat = VIDEO_FORMAT_LINEAR;
++    stChnAttr.stFrameRate.s32SrcFrameRate = AOV_FPS;
++    stChnAttr.stFrameRate.s32DstFrameRate = AOV_FPS;
++    stChnAttr.u32Depth = 1;
++    AOV_CHECK_RET(HI_MPI_VI_SetChnAttr(AOV_VI_PIPE, AOV_VI_CHN, &stChnAttr), "vi set chn attr");
++    AOV_CHECK_RET(HI_MPI_VI_EnableChn(AOV_VI_PIPE, AOV_VI_CHN), "vi enable chn");
++    return HI_SUCCESS;
++}
++
++static void AovViStop(void)
++{
++    (void)HI_MPI_VI_DisableChn(AOV_VI_PIPE, AOV_VI_CHN);
++    (void)HI_MPI_SNAP_DisablePipe(AOV_VI_PIPE);
++    (void)HI_MPI_VI_StopPipe(AOV_VI_PIPE);
++    (void)HI_MPI_VI_DestroyPipe(AOV_VI_PIPE);
++    (void)HI_MPI_VI_DisableDev(AOV_VI_DEV);
++}
++
++/* ==================== VENC（H.264 单通道） ==================== */
++static HI_S32 AovVencStart(void)
++{
++    VENC_CHN_ATTR_S stChnAttr;
++    MPP_CHN_S stSrcChn;
++    MPP_CHN_S stDestChn;
++    VENC_RECV_PIC_PARAM_S stRecvParam;
++
++    (void)memset(&stChnAttr, 0, sizeof(stChnAttr));
++    stChnAttr.stVencAttr.enType = PT_H264;
++    stChnAttr.stVencAttr.u32Profile = 0;
++    stChnAttr.stVencAttr.u32MaxPicWidth = AOV_PIC_WIDTH;
++    stChnAttr.stVencAttr.u32MaxPicHeight = AOV_PIC_HEIGHT;
++    stChnAttr.stVencAttr.u32PicWidth = AOV_PIC_WIDTH;
++    stChnAttr.stVencAttr.u32PicHeight = AOV_PIC_HEIGHT;
++    stChnAttr.stVencAttr.u32BufSize = AOV_VENC_BUF_SIZE;
++    stChnAttr.stRcAttr.enRcMode = VENC_RC_MODE_H264CBR;
++    stChnAttr.stRcAttr.stH264Cbr.u32Gop = AOV_GOP;
++    stChnAttr.stRcAttr.stH264Cbr.u32StatTime = 1;
++    stChnAttr.stRcAttr.stH264Cbr.u32SrcFrameRate = AOV_FPS;
++    stChnAttr.stRcAttr.stH264Cbr.fr32DstFrameRate = (HI_FR32)AOV_FPS;
++    stChnAttr.stRcAttr.stH264Cbr.u32BitRate = AOV_BITRATE_KBPS;
++    AOV_CHECK_RET(HI_MPI_VENC_CreateChn(AOV_VENC_CHN, &stChnAttr), "venc create");
++
++    stSrcChn.enModId = HI_ID_VI;
++    stSrcChn.s32DevId = AOV_VI_PIPE;
++    stSrcChn.s32ChnId = AOV_VI_CHN;
++    stDestChn.enModId = HI_ID_VENC;
++    stDestChn.s32DevId = 0;
++    stDestChn.s32ChnId = AOV_VENC_CHN;
++    AOV_CHECK_RET(HI_MPI_SYS_Bind(&stSrcChn, &stDestChn), "sys bind vi->venc");
++
++    /* 值守态：每触发接收 1 帧（与 SNAP Trigger 配对）；ACTIVE 态改为 -1 连续接收 */
++    (void)memset(&stRecvParam, 0, sizeof(stRecvParam));
++    stRecvParam.s32RecvPicNum = 1;
++    AOV_CHECK_RET(HI_MPI_VENC_StartRecvFrame(AOV_VENC_CHN, &stRecvParam), "venc start recv");
++    return HI_SUCCESS;
++}
++
++static void AovVencStop(void)
++{
++    MPP_CHN_S stSrcChn;
++    MPP_CHN_S stDestChn;
++
++    (void)HI_MPI_VENC_StopRecvFrame(AOV_VENC_CHN);
++    stSrcChn.enModId = HI_ID_VI;
++    stSrcChn.s32DevId = AOV_VI_PIPE;
++    stSrcChn.s32ChnId = AOV_VI_CHN;
++    stDestChn.enModId = HI_ID_VENC;
++    stDestChn.s32DevId = 0;
++    stDestChn.s32ChnId = AOV_VENC_CHN;
++    (void)HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
++    (void)HI_MPI_VENC_DestroyChn(AOV_VENC_CHN);
++}
++
++/* ACTIVE 态切换：连续接收（事件录像）；退回值守重新置 1 帧接收 */
++static HI_S32 AovVencSetActive(HI_BOOL active)
++{
++    VENC_RECV_PIC_PARAM_S stRecvParam;
++
++    (void)memset(&stRecvParam, 0, sizeof(stRecvParam));
++    stRecvParam.s32RecvPicNum = active ? -1 : 1;
++    AOV_CHECK_RET(HI_MPI_VENC_StopRecvFrame(AOV_VENC_CHN), "venc stop recv");
++    AOV_CHECK_RET(HI_MPI_VENC_StartRecvFrame(AOV_VENC_CHN, &stRecvParam), "venc restart recv");
++    if (active) {
++        (void)HI_MPI_VENC_RequestIDR(AOV_VENC_CHN, HI_TRUE);
++    }
++    return HI_SUCCESS;
++}
++
++/* ==================== sensor 低功耗（pfnStandby/pfnRestart，kol SINGLE 模式同款机制） ==================== */
++#define AOV_SENSOR_STANDBY_EN   1
++#define AOV_SENSOR_RESTART_STABLE_MS 100  /* [TUNE] restart 后稳定延时：帧消隐≥33ms + AE 收敛余量，联调期按 Fast AE 实测收紧 */
++
++static void AovSensorRestart(void)
++{
++#if AOV_SENSOR_STANDBY_EN
++    if (stSnsImx335Obj.pfnRestart != HI_NULL) {
++        stSnsImx335Obj.pfnRestart(AOV_VI_PIPE);
++    }
++    usleep(AOV_SENSOR_RESTART_STABLE_MS * 1000);
++#endif
++}
++
++static void AovSensorStandby(void)
++{
++#if AOV_SENSOR_STANDBY_EN
++    if (stSnsImx335Obj.pfnStandby != HI_NULL) {
++        stSnsImx335Obj.pfnStandby(AOV_VI_PIPE);
++    }
++#endif
++}
++
++/* ==================== MD 检测（桩，第二步接 libmd/IVE/NNIE） ==================== */
++static HI_BOOL AovMdCheck(const VIDEO_FRAME_INFO_S *frame)
++{
++    (void)frame;
++    /* [TUNE] 第二步：768x448 子流 + libmd(HI_MD_*)/IVE 帧差/NNIE 人形。
++     * 当前桩返回无事件 → 纯缩时录像模式（业界有效形态：君正 0.5~4fps 缩时） */
++    return HI_FALSE;
++}
++
++/* ==================== 存储：时间戳分段 + 攒批 + fsync ==================== */
++static HI_S32 AovSegmentPath(char *path, unsigned int len)
++{
++    struct timeval tv;
++    struct tm tmNow;
++    int n;
++
++    (void)gettimeofday(&tv, NULL);
++    (void)localtime_r((time_t *)&tv.tv_sec, &tmNow);
++    n = snprintf(path, len, "%s/aov_%04d%02d%02d_%02d%02d%02d_%03u.h264",
++        g_ctx.outDir, tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday,
++        tmNow.tm_hour, tmNow.tm_min, tmNow.tm_sec, g_ctx.segIndex);
++    return (n > 0 && (unsigned int)n < len) ? HI_SUCCESS : HI_FAILURE;
++}
++
++/* 攒批 flush：写段文件 + fsync（休眠前/满批/事件时调用，减少 SD IO 唤醒次数） */
++static HI_S32 AovBatchFlush(void)
++{
++    char path[AOV_OUT_NAME_LEN];
++    int fd;
++    ssize_t written;
++
++    if (g_ctx.batchLen == 0) {
++        return HI_SUCCESS;
++    }
++    if (AovSegmentPath(path, sizeof(path)) != HI_SUCCESS) {
++        return HI_FAILURE;
++    }
++    fd = open(path, O_WRONLY | O_CREAT | O_APPEND, 0644);
++    if (fd < 0) {
++        printf("[AOV] open %s failed\n", path);
++        return HI_FAILURE;
++    }
++    written = write(fd, g_ctx.batchBuf, g_ctx.batchLen);
++    (void)fsync(fd);
++    (void)close(fd);
++    if (written != (ssize_t)g_ctx.batchLen) {
++        printf("[AOV] short write %zd/%u\n", written, g_ctx.batchLen);
++        return HI_FAILURE;
++    }
++    g_ctx.bytes += g_ctx.batchLen;
++    g_ctx.flushes++;
++    g_ctx.batchLen = 0;
++    if (++g_ctx.segFrames >= AOV_SEGMENT_FRAMES) {
++        g_ctx.segFrames = 0;
++        g_ctx.segIndex++;
++    }
++    return HI_SUCCESS;
++}
++
++static HI_S32 AovBatchAppend(const HI_U8 *data, HI_U32 len)
++{
++    if (g_ctx.batchLen + len > AOV_BATCH_BYTES) {
++        AOV_CHECK_RET(AovBatchFlush(), "batch flush");
++    }
++    (void)memcpy(g_ctx.batchBuf + g_ctx.batchLen, data, len);
++    g_ctx.batchLen += len;
++    return HI_SUCCESS;
++}
++
++/* ==================== 取流（单帧/连续共用） ==================== */
++static HI_S32 AovGetStreamOnce(HI_BOOL *gotFrame, VIDEO_FRAME_INFO_S *mdFrame)
++{
++    VENC_STREAM_S stStream;
++    HI_U32 i;
++
++    *gotFrame = HI_FALSE;
++    (void)memset(&stStream, 0, sizeof(stStream));
++    if (HI_MPI_VENC_GetStream(AOV_VENC_CHN, &stStream, AOV_GETSTREAM_TIMEOUT) != HI_SUCCESS) {
++        return HI_SUCCESS; /* 超时无帧：非错误（值守周期 sensor 未出图时正常） */
++    }
++    for (i = 0; i < stStream.u32PackCount; i++) {
++        VENC_PACK_S *pack = &stStream.pstPack[i];
++        if (pack->pu8Addr != NULL && pack->u32Len > 0) {
++            if (AovBatchAppend(pack->pu8Addr + pack->u32Offset,
++                               pack->u32Len - pack->u32Offset) != HI_SUCCESS) {
++                (void)HI_MPI_VENC_ReleaseStream(AOV_VENC_CHN, &stStream);
++                return HI_FAILURE;
++            }
++        }
++    }
++    (void)HI_MPI_VENC_ReleaseStream(AOV_VENC_CHN, &stStream);
++    g_ctx.frames++;
++    *gotFrame = HI_TRUE;
++    (void)mdFrame; /* [TUNE] MD 用 VI 原始帧（GetChnFrame），阶段2 接入时补充 */
++    return HI_SUCCESS;
++}
++
++/* ==================== ACTIVE 突发录像（事件态） ==================== */
++static void AovActiveBurst(void)
++{
++    int missCnt = 0;
++    int elapsedS = 0;
++    HI_BOOL gotFrame = HI_FALSE;
++
++    g_ctx.activeEntries++;
++    printf("[AOV] -> ACTIVE burst %ds\n", AOV_ACTIVE_DURATION_S);
++    if (AovVencSetActive(HI_TRUE) != HI_SUCCESS) {
++        return;
++    }
++    while (g_aovRunning && elapsedS < AOV_ACTIVE_DURATION_S) {
++        if (AovGetStreamOnce(&gotFrame, NULL) != HI_SUCCESS) {
++            break;
++        }
++        if (gotFrame) {
++            /* [TUNE] ACTIVE 期 MD 持续检测做滞回：连续 AOV_ACTIVE_HYSTERESIS 帧无目标提前退出 */
++            if (AovMdCheck(NULL) == HI_FALSE) {
++                missCnt++;
++            } else {
++                missCnt = 0;
++            }
++            if (missCnt >= AOV_ACTIVE_HYSTERESIS * AOV_FPS) {
++                break;
++            }
++        }
++        usleep(1000 * 1000 / AOV_FPS);
++        elapsedS = (int)(g_ctx.frames / AOV_FPS); /* 粗计时；[TUNE] 联调期换 gettimeofday 差值 */
++    }
++    (void)AovBatchFlush(); /* 事件录像立即落盘（"上传完成才可休眠"前置） */
++    (void)AovVencSetActive(HI_FALSE);
++    printf("[AOV] <- back to watch, burst frames=%lu\n", g_ctx.frames);
++}
++
++/* ==================== 主循环 ==================== */
++static unsigned int AovTickMs(void)
++{
++    struct timeval tv;
++    (void)gettimeofday(&tv, NULL);
++    return (unsigned int)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
++}
++
++static void AovLoop(void)
++{
++    HI_BOOL gotFrame = HI_FALSE;
++    unsigned int cycleStart;
++    unsigned int cost;
++    time_t startSec = time(NULL);
++
++    while (g_aovRunning) {
++        cycleStart = AovTickMs();
++
++        /* 1. sensor restart + 单帧触发（SNAP）：sensor 出 1 帧 → ISP → VENC 编码 */
++        AovSensorRestart();
++        if (HI_MPI_SNAP_TriggerPipe(AOV_VI_PIPE) != HI_SUCCESS) {
++            printf("[AOV] snap trigger failed\n");
++        }
++        /* 2. 取编码流 → 攒批 */
++        if (AovGetStreamOnce(&gotFrame, NULL) != HI_SUCCESS) {
++            printf("[AOV] get stream failed\n");
++        }
++        /* 3. MD 检测（桩）：命中转 ACTIVE（ACTIVE 期 sensor 保持 restart 态） */
++        if (gotFrame && AovMdCheck(NULL) == HI_TRUE) {
++            AovActiveBurst();
++        }
++        /* 4. 满批落盘 */
++        if (g_ctx.batchLen >= AOV_BATCH_BYTES) {
++            (void)AovBatchFlush();
++        }
++        /* 5. sensor standby（休眠前外设降电，阶段4 §3.5 步骤9） */
++        AovSensorStandby();
++        /* 6. 周期统计 */
++        cost = AovTickMs() - cycleStart;
++        if (cost > g_ctx.cycleCostMaxMs) {
++            g_ctx.cycleCostMaxMs = cost;
++        }
++        g_ctx.cycles++;
++        if ((g_ctx.cycles % AOV_STAT_PERIOD) == 0) {
++            printf("[AOV] cycles=%lu frames=%lu bytes=%lu flush=%u active=%u costMax=%ums\n",
++                g_ctx.cycles, g_ctx.frames, g_ctx.bytes,
++                g_ctx.flushes, g_ctx.activeEntries, g_ctx.cycleCostMaxMs);
++        }
++        /* 6. 值守间隔休眠——期间内核 idle PM 钩子自动挂起 CPU（T2/T3 链路生效点） */
++        if (g_ctx.durationS > 0 && difftime(time(NULL), startSec) >= g_ctx.durationS) {
++            break;
++        }
++        usleep((useconds_t)g_ctx.intervalMs * 1000);
++    }
++}
++
++static void AovSigHandler(int sig)
++{
++    (void)sig;
++    g_aovRunning = 0;
++}
++
++/* ==================== main ==================== */
++static void AovUsage(const char *prog)
++{
++    printf("Usage: %s [-i interval_s(1)] [-d duration_s(0=inf)] [-o outdir(%s)]\n",
++        prog, AOV_OUT_DIR_DEFAULT);
++}
++
++int main(int argc, char **argv)
++{
++    HI_S32 s32Ret;
++    int opt;
++    int intervalS = AOV_INTERVAL_DEFAULT_S;
++
++    (void)memset(&g_ctx, 0, sizeof(g_ctx));
++    (void)strncpy(g_ctx.outDir, AOV_OUT_DIR_DEFAULT, sizeof(g_ctx.outDir) - 1);
++    while ((opt = getopt(argc, argv, "i:d:o:h")) != -1) {
++        switch (opt) {
++            case 'i': intervalS = atoi(optarg); break;
++            case 'd': g_ctx.durationS = atoi(optarg); break;
++            case 'o': (void)strncpy(g_ctx.outDir, optarg, sizeof(g_ctx.outDir) - 1); break;
++            default: AovUsage(argv[0]); return 1;
++        }
++    }
++    if (intervalS < 1 || intervalS > 60) {
++        intervalS = AOV_INTERVAL_DEFAULT_S;
++    }
++    g_ctx.intervalMs = intervalS * 1000;
++    g_ctx.batchBuf = (unsigned char *)malloc(AOV_BATCH_BYTES);
++    if (g_ctx.batchBuf == NULL) {
++        printf("[AOV] batch buf alloc failed\n");
++        return 1;
++    }
++    (void)mkdir(g_ctx.outDir, 0755);
++
++    (void)signal(SIGINT, AovSigHandler);
++    (void)signal(SIGTERM, AovSigHandler);
++
++    printf("[AOV] start: interval=%ds duration=%ds out=%s\n",
++        intervalS, g_ctx.durationS, g_ctx.outDir);
++
++    /* MPP 用户态初始化（内核态模块已由 SDK_init 完成，此处为 SYS/VB 用户态配置） */
++    AOV_CHECK_RET(HI_MPI_SYS_Init(), "sys init");
++    /* [TUNE] VB 池：当前沿用内核 mmz 默认公共池；第二步按值守/事件双档位重配
++     * （HI_MPI_VB_SetConfig 小池 + ACTIVE 期大池，阶段3 §3 MMZ 重配方案） */
++
++    s32Ret = AovViStart();
++    if (s32Ret != HI_SUCCESS) { goto FAIL_VI; }
++    s32Ret = AovIspSetup();
++    if (s32Ret != HI_SUCCESS) { goto FAIL_ISP; }
++    s32Ret = AovVencStart();
++    if (s32Ret != HI_SUCCESS) { goto FAIL_VENC; }
++
++    AovLoop();
++
++    (void)AovBatchFlush(); /* 退出前落盘（休眠前 flush 纪律） */
++    printf("[AOV] done: cycles=%lu frames=%lu bytes=%lu flush=%u active=%u costMax=%ums\n",
++        g_ctx.cycles, g_ctx.frames, g_ctx.bytes,
++        g_ctx.flushes, g_ctx.activeEntries, g_ctx.cycleCostMaxMs);
++
++FAIL_VENC:
++    AovVencStop();
++FAIL_ISP:
++    AovIspStop();
++FAIL_VI:
++    AovViStop();
++    (void)HI_MPI_SYS_Exit();
++    free(g_ctx.batchBuf);
++    return (s32Ret == HI_SUCCESS) ? 0 : 1;
++}
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif
+diff --git a/hispark_taurus/config.json b/hispark_taurus/config.json
+index 14c7fe4..fbb8212 100644
+--- a/hispark_taurus/config.json
++++ b/hispark_taurus/config.json
+@@ -10,20 +10,6 @@
+     "kernel_type": "liteos_a",
+     "kernel_version": "",
+     "subsystems": [
+-      {
+-        "subsystem": "ability",
+-        "components": [
+-          { "component": "ability_lite", "features":[ "ability_lite_enable_ohos_appexecfwk_feature_ability = true" ] },
+-          { "component": "dmsfwk_lite", "features":[] }
+-        ]
+-      },
+-      {
+-        "subsystem": "applications",
+-        "components": [
+-          { "component": "camera_sample_app", "features":[] },
+-          { "component": "camera_screensaver_app", "features":[] }
+-        ]
+-      },
+       {
+         "subsystem": "hiviewdfx",
+         "components": [
+@@ -35,7 +21,10 @@
+         "subsystem": "systemabilitymgr",
+         "components": [
+           { "component": "samgr_lite", "features":[] },
+-          { "component": "safwk_lite", "features":[] }
++          { "component": "safwk_lite", "features":[
++            "safwk_lite_feature_enable_abilityms = false",
++            "safwk_lite_feature_enable_dtbschedmgr = false"
++          ] }
+         ]
+       },
+       {
+@@ -43,8 +32,6 @@
+         "components": [
+           { "component": "permission_lite", "features":[] },
+           { "component": "appverify", "features":[] },
+-          { "component": "device_auth", "features":[] },
+-          { "component": "device_security_level", "features": [] },
+           { "component": "huks", "features":
+             [
+               "huks_config_file = \"hks_config_small.h\"",
+@@ -68,24 +55,11 @@
+           { "component": "surface_lite", "features":[] }
+         ]
+       },
+-      {
+-        "subsystem": "window",
+-        "components": [
+-          { "component": "window_manager_lite", "features":[] }
+-        ]
+-      },
+-      {
+-        "subsystem": "sensors",
+-        "components": [
+-          { "component": "sensor_lite", "features":[] }
+-        ]
+-      },
+       {
+         "subsystem": "startup",
+         "components": [
+           { "component": "bootstrap_lite", "features":[] },
+-          { "component": "init", "features":["init_feature_begetctl_liteos=true"] },
+-          { "component": "appspawn", "features":[] }
++          { "component": "init", "features":["init_feature_begetctl_liteos=true"] }
+         ]
+       },
+       {
+@@ -103,39 +77,21 @@
+       {
+         "subsystem": "communication",
+         "components": [
+-          { "component": "dsoftbus", "features":[] },
+           { "component": "ipc", "features":[] }
+         ]
+       },
+-      {
+-        "subsystem": "arkui",
+-        "components": [
+-          { "component": "ace_engine_lite", "features":[ "" ] },
+-          { "component": "ui_lite", "features":[ "ui_lite_enable_graphic_font_config = true" ] }
+-        ]
+-      },
+       {
+         "subsystem": "hdf",
+         "components": [
+           { "component": "hdf_core", "features":[ "hdf_core_platform_test_support = true" ] },
+           { "component": "drivers_tools", "features":[] },
+           { "component": "drivers_adapter", "features":[] },
+-          { "component": "drivers_peripheral_display", "features":[] },
+           { "component": "drivers_peripheral_input", "features":[
+             "drivers_peripheral_input_feature_lite_support_test = true"
+           ] },
+-          { "component": "drivers_peripheral_sensor", "features":[
+-            "drivers_peripheral_sensor_feature_lite_support_test = true"
+-          ] },
+           { "component": "drivers_peripheral_wlan", "features":[] },
+-          { "component": "drivers_peripheral_vibrator", "features":[
+-            "drivers_peripheral_vibrator_feature_lite_support_test = true"
+-          ] },
+           { "component": "drivers_peripheral_usb", "features":[] },
+-          { "component": "drivers_peripheral_audio", "features":[] },
+-          { "component": "drivers_peripheral_light", "features":[
+-            "drivers_peripheral_light_feature_lite_support_test = true"
+-          ] }
++          { "component": "drivers_peripheral_audio", "features":[] }
+         ]
+       },
+       {
+@@ -151,31 +107,17 @@
+           { "component": "i18n_lite", "features":[] }
+         ]
+       },
+-      {
+-        "subsystem": "xts",
+-        "components": [
+-          { "component": "acts", "features":[] },
+-          { "component": "tools", "features":[] },
+-          { "component": "device_attest_lite", "features":[] }
+-        ]
+-      },
+       {
+         "subsystem": "ai",
+         "components": [
+           { "component": "ai_engine", "features":[] }
+         ]
+       },
+-      {
+-        "subsystem": "developtools",
+-        "components": [
+-          { "component": "syscap_codec", "features":[] }
+-        ]
+-      },
+       {
+         "subsystem": "powermgr",
+         "components": [
+-          { "component": "powermgr_lite", "features":[ "enable_screensaver = true" ] },
+-          { "component": "battery_lite", "features":[ "enable_screensaver = true" ] }
++          { "component": "powermgr_lite", "features":[] },
++          { "component": "battery_lite", "features":[] }
+         ]
+       }
+     ],
+diff --git a/hispark_taurus/hdf_config/device_info/device_info.hcs b/hispark_taurus/hdf_config/device_info/device_info.hcs
+index bc5f5f1..cf4273c 100644
+--- a/hispark_taurus/hdf_config/device_info/device_info.hcs
++++ b/hispark_taurus/hdf_config/device_info/device_info.hcs
+@@ -481,321 +481,11 @@
+                 }
+             }
+         }
+-        sensor :: host {
+-            hostName = "sensor_host";
+-            device_sensor_manager :: device {
+-                device0 :: deviceNode {
+-                    policy = 2;
+-                    priority = 100;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_MGR_AP";
+-                    serviceName = "hdf_sensor_manager_ap";
+-                }
+-            }
+-            device_sensor_accel :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 110;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_ACCEL";
+-                    serviceName = "hdf_sensor_accel";
+-                    deviceMatchAttr = "hdf_sensor_accel_driver";
+-                }
+-            }
+-            device_sensor_bmi160 :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 120;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_ACCEL_BMI160";
+-                    serviceName = "hdf_accel_bmi160";
+-                    deviceMatchAttr = "hdf_sensor_accel_bmi160_driver";
+-                }
+-            }
+-            device_sensor_als :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 110;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_ALS";
+-                    serviceName = "hdf_sensor_als";
+-                    deviceMatchAttr = "hdf_sensor_als_driver";
+-                }
+-            }
+-            device_sensor_bh1745 :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 120;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_ALS_BH1745";
+-                    serviceName = "hdf_als_bh1745";
+-                    deviceMatchAttr = "hdf_sensor_als_bh1745_driver";
+-                }
+-            }
+-            device_sensor_gyro :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 110;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_GYRO";
+-                    serviceName = "hdf_sensor_gyro";
+-                    deviceMatchAttr = "hdf_sensor_gyro_driver";
+-                }
+-            }
+-            device_sensor_gyro_bmi160 :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 120;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_GYRO_BMI160";
+-                    serviceName = "hdf_gyro_bmi160";
+-                    deviceMatchAttr = "hdf_sensor_gyro_bmi160_driver";
+-                }
+-            }
+-            device_sensor_barometer :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 110;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_BAROMETER";
+-                    serviceName = "hdf_sensor_barometer";
+-                    deviceMatchAttr = "hdf_sensor_barometer_driver";
+-                }
+-            }
+-            device_sensor_bmp180 :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 120;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_BAROMETER_BMP180";
+-                    serviceName = "hdf_barometer_bmp180";
+-                    deviceMatchAttr = "hdf_sensor_barometer_bmp180_driver";
+-                }
+-            }
+-            device_sensor_hall :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 110;
+-                    preload = 2;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_HALL";
+-                    serviceName = "hdf_sensor_hall";
+-                    deviceMatchAttr = "hdf_sensor_hall_driver";
+-                }
+-            }
+-            device_sensor_ak8789 :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 120;
+-                    preload = 2;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_HALL_AK8789";
+-                    serviceName = "hdf_hall_ak8789";
+-                    deviceMatchAttr = "hdf_sensor_hall_ak8789_driver";
+-                }
+-            }
+-            device_sensor_magnetic :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 110;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_MAGNETIC";
+-                    serviceName = "hdf_sensor_magnetic";
+-                    deviceMatchAttr = "hdf_sensor_magnetic_driver";
+-                }
+-            }
+-            device_sensor_lsm303 :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 120;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_MAGNETIC_LSM303";
+-                    serviceName = "hdf_magnetic_lsm303";
+-                    deviceMatchAttr = "hdf_sensor_magnetic_lsm303_driver";
+-                }
+-            }
+-            device_sensor_proximity :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 110;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_PROXIMITY";
+-                    serviceName = "hdf_sensor_proximity";
+-                    deviceMatchAttr = "hdf_sensor_proximity_driver";
+-                }
+-            }
+-            device_sensor_apds9960 :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 120;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_PROXIMITY_APDS9960";
+-                    serviceName = "hdf_proximity_apds9960";
+-                    deviceMatchAttr = "hdf_sensor_proximity_adps9960_driver";
+-                }
+-            }
+-            device_sensor_gravity :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 130;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_SENSOR_GRAVITY";
+-                    serviceName = "hdf_sensor_gravity";
+-                    deviceMatchAttr = "hdf_sensor_gravity_driver";
+-                }
+-            }
+-        }
+-        vibrator :: host {
+-            hostName = "vibrator_host";
+-            device_vibrator :: device {
+-                device0 :: deviceNode {
+-                    policy = 2;
+-                    priority = 100;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_VIBRATOR";
+-                    serviceName = "hdf_misc_vibrator";
+-                    deviceMatchAttr = "hdf_vibrator_driver";
+-                }
+-            }
+-            device_linear_vibrator :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 105;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_LINEAR_VIBRATOR";
+-                    serviceName = "hdf_misc_linear_vibrator";
+-                    deviceMatchAttr = "hdf_linear_vibrator_driver";
+-                }
+-            }
+-        }
+         storage :: host {
+ 
+         }
+         media :: host {
+ 
+-        }
+-        audio :: host {
+-            hostName = "audio_host";
+-            priority = 60;
+-            device_dai0 :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 50;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "DAI_HI3516";
+-                    serviceName = "dai_service";
+-                    deviceMatchAttr = "hdf_dai_driver";
+-                }
+-            }
+-            device_codec :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 50;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "CODEC_HI3516";
+-                    serviceName = "codec_service_0";
+-                    deviceMatchAttr = "hdf_codec_driver";
+-                }
+-            }
+-            device_codec_ex :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 50;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "CODEC_TFA9879";
+-                    serviceName = "codec_service_1";
+-                    deviceMatchAttr = "hdf_codec_driver_ex";
+-                }
+-            }
+-            device_dsp :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 50;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "DSP";
+-                    serviceName = "dsp_service_0";
+-                    deviceMatchAttr = "hdf_dsp_driver";
+-                }
+-            }
+-            device_dma :: device {
+-                device0 :: deviceNode {
+-                    policy = 1;
+-                    priority = 50;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "DMA_HI3516";
+-                    serviceName = "dma_service_0";
+-                    deviceMatchAttr = "hdf_dma_driver";
+-                }
+-            }
+-            device_audio :: device {
+-                device0 :: deviceNode {
+-                    policy = 2;
+-                    priority = 60;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "HDF_AUDIO";
+-                    deviceMatchAttr = "hdf_audio_driver_0";
+-                    serviceName = "hdf_audio_codec_primary_dev0";
+-                }
+-                device1 :: deviceNode {
+-                    policy = 2;
+-                    priority = 60;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "HDF_AUDIO";
+-                    deviceMatchAttr = "hdf_audio_driver_1";
+-                    serviceName = "hdf_audio_codec_primary_dev1";
+-                }
+-            }
+-            device_stream :: device {
+-                device0 :: deviceNode {
+-                    policy = 2;
+-                    priority = 80;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "HDF_AUDIO_STREAM";
+-                    serviceName = "hdf_audio_render";
+-                }
+-                device1 :: deviceNode {
+-                    policy = 2;
+-                    priority = 80;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "HDF_AUDIO_STREAM";
+-                    serviceName = "hdf_audio_capture";
+-                }
+-            }
+-            device_control :: device {
+-                device0 :: deviceNode {
+-                    policy = 2;
+-                    priority = 80;
+-                    preload = 0;
+-                    permission = 0666;
+-                    moduleName = "HDF_AUDIO_CONTROL";
+-                    serviceName = "hdf_audio_control";
+-                }
+-            }
+         }
+         usbfn :: host {
+             hostName = "usbfn_host";
+@@ -914,32 +604,5 @@
+                 }
+             }
+         }
+-        dsoftbus :: host {
+-            hostName = "dsoftbus_host";
+-            device_dsoftbus :: device {
+-                device0 :: deviceNode {
+-                    policy = 2;
+-                    priority = 100;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_DSOFTBUS";
+-                    serviceName = "hdf_dsoftbus";
+-                }
+-            }
+-        }
+-        light :: host {
+-            hostName = "light_host";
+-            device_light :: device {
+-                device0 :: deviceNode {
+-                    policy = 2;
+-                    priority = 100;
+-                    preload = 0;
+-                    permission = 0664;
+-                    moduleName = "HDF_LIGHT";
+-                    serviceName = "hdf_light";
+-                    deviceMatchAttr = "hdf_light_driver";
+-                }
+-            }
+-        }
+     }
+ }
+diff --git a/hispark_taurus/hdf_config/hdf.hcs b/hispark_taurus/hdf_config/hdf.hcs
+index 82d6dcd..db256cb 100755
+--- a/hispark_taurus/hdf_config/hdf.hcs
++++ b/hispark_taurus/hdf_config/hdf.hcs
+@@ -19,17 +19,8 @@
+ #include "ethernet/eth_config.hcs"
+ #include "lcd/lcd_config.hcs"
+ #include "input/input_config.hcs"
+-#include "sensor/sensor_config.hcs"
+-#include "vibrator/vibrator_config.hcs"
+-#include "vibrator/linear_vibrator_config.hcs"
+ #include "usb/usb_device.hcs"
+ #include "usb/usb_pnp_device.hcs"
+-#include "audio/audio_config.hcs"
+-#include "audio/codec_config.hcs"
+-#include "audio/dai_config.hcs"
+-#include "audio/dma_config.hcs"
+-#include "audio/dsp_config.hcs"
+-#include "light/light_config.hcs"
+ 
+ root {
+     module = "hisilicon,hi35xx_chip";
+diff --git a/hispark_taurus/init_configs/init_liteos_a_3516dv300.cfg b/hispark_taurus/init_configs/init_liteos_a_3516dv300.cfg
+index e1c7936..8d8cfb5 100755
+--- a/hispark_taurus/init_configs/init_liteos_a_3516dv300.cfg
++++ b/hispark_taurus/init_configs/init_liteos_a_3516dv300.cfg
+@@ -5,18 +5,6 @@
+                 "mkdir /storage/data/log",
+                 "chmod 0755 /storage/data/log",
+                 "chown 4 4 /storage/data/log",
+-                "mkdir /storage/data/softbus",
+-                "chmod 0700 /storage/data/softbus",
+-                "chown 7 7 /storage/data/softbus",
+-                "mkdir /storage/deviceauth",
+-                "chmod 0700 /storage/deviceauth",
+-                "chown 19 7 /storage/deviceauth",
+-                "mkdir /storage/deviceauth/account",
+-                "chmod 0700 /storage/deviceauth/account",
+-                "chown 19 7 /storage/deviceauth/account",
+-                "mkdir /storage/data/device_attest",
+-                "chmod 0755 /storage/data/device_attest",
+-                "chown 20 20 /storage/data/device_attest",
+                 "mkdir /sdcard",
+                 "chmod 0777 /sdcard",
+                 "chmod 0666 /dev/lite_ipc",
+@@ -47,10 +35,7 @@
+                 "export LD_LIBRARY_PATH /storage/app/libs",
+ 
+                 "start foundation",
+-                "start bundle_daemon",
+-                "start appspawn",
+                 "start media_server",
+-                "start wms_server",
+                 "start shell"
+             ]
+        }, {
+@@ -58,13 +43,7 @@
+             "cmds" : [
+                 "start apphilogcat",
+                 "start hiview",
+-                "start deviceauth_service",
+-                "start sensor_service",
+-                "start ai_server",
+-                "start softbus_server",
+-                "start devattest_service",
+-                "start dslm_server",
+-                "start huks_server"
++                "start ai_server"
+             ]
+        }, {
+             "name" : "post-init",
+@@ -72,7 +51,6 @@
+                 "chown 0 99 /dev/hdf",
+                 "chown 0 99 /dev/hdf/dev_mgr",
+                 "chown 0 99 /dev/hdf/hdfwifi",
+-                "chown 0 99 /dev/hdf/hdf_sensor_manager_ap",
+                 "chown 0 99 /dev/gpio",
+                 "chown 0 99 /dev/i2c-0",
+                 "chown 0 99 /dev/i2c-1",
+@@ -89,7 +67,8 @@
+                 "chown 0 99 /dev/spidev0.0",
+                 "chown 0 99 /dev/spidev1.0",
+                 "chown 0 99 /dev/spidev2.0",
+-                "chown 0 99 /dev/spidev2.1"
++                "chown 0 99 /dev/spidev2.1",
++                "start huks_server"
+          ]
+         }
+     ],
+@@ -109,14 +88,6 @@
+             "once" : 0,
+             "importance" : 0,
+             "caps" : [4294967295]
+-        }, {
+-            "name" : "appspawn",
+-            "path" : ["/bin/appspawn"],
+-            "uid" : 1,
+-            "gid" : 1,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : [2, 6, 7, 8, 11, 23]
+         }, {
+             "name" : "apphilogcat",
+             "path" : ["/bin/apphilogcat", "-L", "auto"],
+@@ -133,22 +104,6 @@
+             "once" : 1,
+             "importance" : 0,
+             "caps" : []
+-        }, {
+-            "name" : "wms_server",
+-            "path" : ["/bin/wms_server"],
+-            "uid" : 10,
+-            "gid" : 10,
+-            "once" : 1,
+-            "importance" : 0,
+-            "caps" : [1,23]
+-        }, {
+-            "name" : "bundle_daemon",
+-            "path" : ["/bin/bundle_daemon"],
+-            "uid" : 8,
+-            "gid" : 8,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : [0, 1]
+         }, {
+             "name" : "hiview",
+             "path" : ["/bin/hiview"],
+@@ -165,14 +120,6 @@
+             "once" : 0,
+             "importance" : 0,
+             "caps" : [1, 23]
+-        }, {
+-	    "name" : "sensor_service",
+-            "path" : ["/bin/sensor_service"],
+-            "uid" : 6,
+-            "gid" : 99,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : []
+ 	    }, {
+             "name" : "ai_server",
+             "path" : ["/bin/ai_server"],
+@@ -181,38 +128,6 @@
+             "once" : 0,
+             "importance" : 0,
+             "caps" : []
+-        }, {
+-            "name" : "softbus_server",
+-            "path" : ["/bin/softbus_server"],
+-            "uid" : 0,
+-            "gid" : 0,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : []
+-        }, {
+-            "name" : "deviceauth_service",
+-            "path" : ["/bin/deviceauth_service"],
+-            "uid" : 19,
+-            "gid" : 7,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : [23]
+-        }, {
+-            "name" : "devattest_service",
+-            "path" : ["/bin/devattest_service"],
+-            "uid" : 20,
+-            "gid" : 20,
+-            "once" : 1,
+-            "importance" : 0,
+-            "caps" : [1,23]
+-        }, {
+-            "name" : "dslm_server",
+-            "path" : ["/bin/dslm_server"],
+-            "uid" : 3046,
+-            "gid" : 3046,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : [23]
+         }
+     ]
+ }
+diff --git a/hispark_taurus/init_configs/init_liteos_a_3516dv300_mksh.cfg b/hispark_taurus/init_configs/init_liteos_a_3516dv300_mksh.cfg
+index eac9c73..7bc562f 100755
+--- a/hispark_taurus/init_configs/init_liteos_a_3516dv300_mksh.cfg
++++ b/hispark_taurus/init_configs/init_liteos_a_3516dv300_mksh.cfg
+@@ -5,12 +5,6 @@
+                 "mkdir /storage/data/log",
+                 "chmod 0755 /storage/data/log",
+                 "chown 4 4 /storage/data/log",
+-                "mkdir /storage/data/softbus",
+-                "chmod 0700 /storage/data/softbus",
+-                "chown 7 7 /storage/data/softbus",
+-                "mkdir /storage/data/device_attest",
+-                "chmod 0755 /storage/data/device_attest",
+-                "chown 20 20 /storage/data/device_attest",
+                 "mkdir /sdcard",
+                 "chmod 0666 /dev/lite_ipc",
+                 "chmod 0777 /sdcard",
+@@ -41,10 +35,7 @@
+                 "export LD_LIBRARY_PATH /storage/app/libs",
+ 
+                 "start foundation",
+-                "start bundle_daemon",
+-                "start appspawn",
+                 "start media_server",
+-                "start wms_server",
+                 "start mksh"
+             ]
+        }, {
+@@ -52,13 +43,7 @@
+             "cmds" : [
+                 "start apphilogcat",
+                 "start hiview",
+-                "start deviceauth_service",
+-                "start sensor_service",
+-                "start ai_server",
+-                "start softbus_server",
+-                "start devattest_service",
+-                "start dslm_server",
+-                "start huks_server"
++                "start ai_server"
+             ]
+        }, {
+             "name" : "post-init",
+@@ -69,7 +54,6 @@
+                 "chown 0 99 /dev/i2c-0",
+                 "chown 0 99 /dev/i2c-1",
+                 "chown 0 99 /dev/i2c-2",
+-                "chown 0 99 /dev/hdf/hdf_sensor_manager_ap",
+                 "chown 0 99 /dev/i2c-3",
+                 "chown 0 99 /dev/i2c-4",
+                 "chown 0 99 /dev/i2c-5",
+@@ -82,7 +66,8 @@
+                 "chown 0 99 /dev/spidev0.0",
+                 "chown 0 99 /dev/spidev1.0",
+                 "chown 0 99 /dev/spidev2.0",
+-                "chown 0 99 /dev/spidev2.1"
++                "chown 0 99 /dev/spidev2.1",
++                "start huks_server"
+          ]
+         }
+     ],
+@@ -102,14 +87,6 @@
+             "once" : 0,
+             "importance" : 0,
+             "caps" : [4294967295]
+-        }, {
+-            "name" : "appspawn",
+-            "path" : ["/bin/appspawn"],
+-            "uid" : 1,
+-            "gid" : 1,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : [2, 6, 7, 8, 11, 23]
+         }, {
+             "name" : "apphilogcat",
+             "path" : ["/bin/apphilogcat", "-L", "auto"],
+@@ -126,22 +103,6 @@
+             "once" : 1,
+             "importance" : 0,
+             "caps" : []
+-        }, {
+-            "name" : "wms_server",
+-            "path" : ["/bin/wms_server"],
+-            "uid" : 10,
+-            "gid" : 10,
+-            "once" : 1,
+-            "importance" : 0,
+-            "caps" : [1,23]
+-        }, {
+-            "name" : "bundle_daemon",
+-            "path" : ["/bin/bundle_daemon"],
+-            "uid" : 8,
+-            "gid" : 8,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : [0, 1]
+         }, {
+             "name" : "hiview",
+             "path" : ["/bin/hiview"],
+@@ -158,14 +119,6 @@
+             "once" : 0,
+             "importance" : 0,
+             "caps" : [1, 23]
+-        }, {
+-	    "name" : "sensor_service",
+-            "path" : ["/bin/sensor_service"],
+-            "uid" : 6,
+-            "gid" : 99,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : []
+ 	    }, {
+             "name" : "ai_server",
+             "path" : ["/bin/ai_server"],
+@@ -174,38 +127,6 @@
+             "once" : 0,
+             "importance" : 0,
+             "caps" : []
+-        }, {
+-            "name" : "softbus_server",
+-            "path" : ["/bin/softbus_server"],
+-            "uid" : 0,
+-            "gid" : 0,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : []
+-        }, {
+-            "name" : "deviceauth_service",
+-            "path" : ["/bin/deviceauth_service"],
+-            "uid" : 0,
+-            "gid" : 0,
+-            "once" : 1,
+-            "importance" : 0,
+-            "caps" : []
+-        }, {
+-            "name" : "devattest_service",
+-            "path" : ["/bin/devattest_service"],
+-            "uid" : 20,
+-            "gid" : 20,
+-            "once" : 1,
+-            "importance" : 0,
+-            "caps" : [1,23]
+-        }, {
+-            "name" : "dslm_server",
+-            "path" : ["/bin/dslm_server"],
+-            "uid" : 3046,
+-            "gid" : 3046,
+-            "once" : 0,
+-            "importance" : 0,
+-            "caps" : [23]
+         }
+     ]
+ }
+diff --git a/hispark_taurus/kernel_configs/debug.config b/hispark_taurus/kernel_configs/debug.config
+index a5cb655..8565029 100755
+--- a/hispark_taurus/kernel_configs/debug.config
++++ b/hispark_taurus/kernel_configs/debug.config
+@@ -29,6 +29,7 @@ LOSCFG_DRIVERS_HDF_PLATFORM_MMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_EMMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_PWM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_RTC=y
++LOSCFG_DRIVERS_HDF_PLATFORM_PM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_SDIO=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_DSI=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_CSI=y
+@@ -62,7 +63,7 @@ LOSCFG_DRIVERS_HDF_USB_DDK_HOST=y
+ LOSCFG_DRIVERS_HDF_USB_PNP_NOTIFY=y
+ LOSCFG_DRIVERS_HDF_USB_HOST_DEMO_TEST=y
+ LOSCFG_DRIVERS_HDF_TP_5P5_GT911=y
+-LOSCFG_DRIVERS_HDF_SENSOR=y
++# LOSCFG_DRIVERS_HDF_SENSOR is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ACCEL is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ACCEL_BMI160 is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ALS is not set
+@@ -79,16 +80,16 @@ LOSCFG_DRIVERS_HDF_SENSOR=y
+ # LOSCFG_DRIVERS_HDF_SENSOR_MAGNETIC_LSM303 is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_GRAVITY is not set
+ LOSCFG_DRIVERS_HDF_STORAGE=y
+-LOSCFG_DRIVERS_HDF_DSOFTBUS=y
+-LOSCFG_DSOFTBUS_WLAN_PARAM_MONITOR=y
+-LOSCFG_DSOFTBUS_LWIP_MONITOR=y
+-LOSCFG_DRIVERS_HDF_LIGHT=y
+-LOSCFG_DRIVERS_HDF_VIBRATOR=y
+-LOSCFG_DRIVERS_HDF_VIBRATOR_LINEAR=y
++# LOSCFG_DRIVERS_HDF_DSOFTBUS is not set
++# LOSCFG_DSOFTBUS_WLAN_PARAM_MONITOR is not set
++# LOSCFG_DSOFTBUS_LWIP_MONITOR is not set
++# LOSCFG_DRIVERS_HDF_LIGHT is not set
++# LOSCFG_DRIVERS_HDF_VIBRATOR is not set
++# LOSCFG_DRIVERS_HDF_VIBRATOR_LINEAR is not set
+ LOSCFG_DRIVERS_SD=y
+ LOSCFG_DRIVERS_EMMC=y
+ LOSCFG_DRIVERS_HI3881=y
+ LOSCFG_DRIVERS_HIEVENT=y
+-LOSCFG_DRIVERS_HDF_AUDIO=y
+-LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516=y
+-LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879=y
++# LOSCFG_DRIVERS_HDF_AUDIO is not set
++# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516 is not set
++# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879 is not set
+diff --git a/hispark_taurus/kernel_configs/debug_tee.config b/hispark_taurus/kernel_configs/debug_tee.config
+index 05ab26d..5f6175f 100755
+--- a/hispark_taurus/kernel_configs/debug_tee.config
++++ b/hispark_taurus/kernel_configs/debug_tee.config
+@@ -30,6 +30,7 @@ LOSCFG_DRIVERS_HDF_PLATFORM_MMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_EMMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_PWM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_RTC=y
++LOSCFG_DRIVERS_HDF_PLATFORM_PM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_SDIO=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_DSI=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_CSI=y
+@@ -62,7 +63,7 @@ LOSCFG_DRIVERS_HDF_USB_DDK_HOST=y
+ LOSCFG_DRIVERS_HDF_USB_PNP_NOTIFY=y
+ LOSCFG_DRIVERS_HDF_USB_HOST_DEMO_TEST=y
+ LOSCFG_DRIVERS_HDF_TP_5P5_GT911=y
+-LOSCFG_DRIVERS_HDF_SENSOR=y
++# LOSCFG_DRIVERS_HDF_SENSOR is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ACCEL is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ACCEL_BMI160 is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ALS is not set
+@@ -79,17 +80,17 @@ LOSCFG_DRIVERS_HDF_SENSOR=y
+ # LOSCFG_DRIVERS_HDF_SENSOR_MAGNETIC_LSM303 is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_GRAVITY is not set
+ LOSCFG_DRIVERS_HDF_STORAGE=y
+-LOSCFG_DRIVERS_HDF_DSOFTBUS=y
+-LOSCFG_DSOFTBUS_WLAN_PARAM_MONITOR=y
+-LOSCFG_DSOFTBUS_LWIP_MONITOR=y
+-LOSCFG_DRIVERS_HDF_LIGHT=y
+-LOSCFG_DRIVERS_HDF_VIBRATOR=y
+-LOSCFG_DRIVERS_HDF_VIBRATOR_LINEAR=y
++# LOSCFG_DRIVERS_HDF_DSOFTBUS is not set
++# LOSCFG_DSOFTBUS_WLAN_PARAM_MONITOR is not set
++# LOSCFG_DSOFTBUS_LWIP_MONITOR is not set
++# LOSCFG_DRIVERS_HDF_LIGHT is not set
++# LOSCFG_DRIVERS_HDF_VIBRATOR is not set
++# LOSCFG_DRIVERS_HDF_VIBRATOR_LINEAR is not set
+ LOSCFG_DRIVERS_SD=y
+ LOSCFG_DRIVERS_EMMC=y
+ LOSCFG_DRIVERS_HI3881=y
+ LOSCFG_DRIVERS_TZDRIVER=y
+ LOSCFG_DRIVERS_HIEVENT=y
+-LOSCFG_DRIVERS_HDF_AUDIO=y
+-LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516=y
+-LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879=y
++# LOSCFG_DRIVERS_HDF_AUDIO is not set
++# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516 is not set
++# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879 is not set
+diff --git a/hispark_taurus/kernel_configs/release.config b/hispark_taurus/kernel_configs/release.config
+index aa998f4..dd0dd19 100755
+--- a/hispark_taurus/kernel_configs/release.config
++++ b/hispark_taurus/kernel_configs/release.config
+@@ -27,6 +27,7 @@ LOSCFG_DRIVERS_HDF_PLATFORM_MMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_EMMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_PWM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_RTC=y
++LOSCFG_DRIVERS_HDF_PLATFORM_PM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_SDIO=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_DSI=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_CSI=y
+@@ -58,7 +59,7 @@ LOSCFG_DRIVERS_HDF_USB_DDK_HOST=y
+ LOSCFG_DRIVERS_HDF_USB_PNP_NOTIFY=y
+ LOSCFG_DRIVERS_HDF_USB_HOST_DEMO_TEST=y
+ LOSCFG_DRIVERS_HDF_TP_5P5_GT911=y
+-LOSCFG_DRIVERS_HDF_SENSOR=y
++# LOSCFG_DRIVERS_HDF_SENSOR is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ACCEL is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ACCEL_BMI160 is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ALS is not set
+@@ -75,16 +76,16 @@ LOSCFG_DRIVERS_HDF_SENSOR=y
+ # LOSCFG_DRIVERS_HDF_SENSOR_MAGNETIC_LSM303 is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_GRAVITY is not set
+ LOSCFG_DRIVERS_HDF_STORAGE=y
+-LOSCFG_DRIVERS_HDF_DSOFTBUS=y
+-LOSCFG_DSOFTBUS_WLAN_PARAM_MONITOR=y
+-LOSCFG_DSOFTBUS_LWIP_MONITOR=y
+-LOSCFG_DRIVERS_HDF_LIGHT=y
+-LOSCFG_DRIVERS_HDF_VIBRATOR=y
+-LOSCFG_DRIVERS_HDF_VIBRATOR_LINEAR=y
++# LOSCFG_DRIVERS_HDF_DSOFTBUS is not set
++# LOSCFG_DSOFTBUS_WLAN_PARAM_MONITOR is not set
++# LOSCFG_DSOFTBUS_LWIP_MONITOR is not set
++# LOSCFG_DRIVERS_HDF_LIGHT is not set
++# LOSCFG_DRIVERS_HDF_VIBRATOR is not set
++# LOSCFG_DRIVERS_HDF_VIBRATOR_LINEAR is not set
+ LOSCFG_DRIVERS_SD=y
+ LOSCFG_DRIVERS_EMMC=y
+ LOSCFG_DRIVERS_HI3881=y
+ LOSCFG_DRIVERS_HIEVENT=y
+-LOSCFG_DRIVERS_HDF_AUDIO=y
+-LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516=y
+-LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879=y
++# LOSCFG_DRIVERS_HDF_AUDIO is not set
++# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516 is not set
++# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879 is not set
+diff --git a/hispark_taurus/kernel_configs/release_tee.config b/hispark_taurus/kernel_configs/release_tee.config
+index 3c8a394..4c0916d 100755
+--- a/hispark_taurus/kernel_configs/release_tee.config
++++ b/hispark_taurus/kernel_configs/release_tee.config
+@@ -28,6 +28,7 @@ LOSCFG_DRIVERS_HDF_PLATFORM_MMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_EMMC=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_PWM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_RTC=y
++LOSCFG_DRIVERS_HDF_PLATFORM_PM=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_SDIO=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_DSI=y
+ LOSCFG_DRIVERS_HDF_PLATFORM_MIPI_CSI=y
+@@ -59,7 +60,7 @@ LOSCFG_DRIVERS_HDF_USB_DDK_HOST=y
+ LOSCFG_DRIVERS_HDF_USB_PNP_NOTIFY=y
+ LOSCFG_DRIVERS_HDF_USB_HOST_DEMO_TEST=y
+ LOSCFG_DRIVERS_HDF_TP_5P5_GT911=y
+-LOSCFG_DRIVERS_HDF_SENSOR=y
++# LOSCFG_DRIVERS_HDF_SENSOR is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ACCEL is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ACCEL_BMI160 is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_ALS is not set
+@@ -76,17 +77,17 @@ LOSCFG_DRIVERS_HDF_SENSOR=y
+ # LOSCFG_DRIVERS_HDF_SENSOR_MAGNETIC_LSM303 is not set
+ # LOSCFG_DRIVERS_HDF_SENSOR_GRAVITY is not set
+ LOSCFG_DRIVERS_HDF_STORAGE=y
+-LOSCFG_DRIVERS_HDF_DSOFTBUS=y
+-LOSCFG_DSOFTBUS_WLAN_PARAM_MONITOR=y
+-LOSCFG_DSOFTBUS_LWIP_MONITOR=y
+-LOSCFG_DRIVERS_HDF_LIGHT=y
+-LOSCFG_DRIVERS_HDF_VIBRATOR=y
+-LOSCFG_DRIVERS_HDF_VIBRATOR_LINEAR=y
++# LOSCFG_DRIVERS_HDF_DSOFTBUS is not set
++# LOSCFG_DSOFTBUS_WLAN_PARAM_MONITOR is not set
++# LOSCFG_DSOFTBUS_LWIP_MONITOR is not set
++# LOSCFG_DRIVERS_HDF_LIGHT is not set
++# LOSCFG_DRIVERS_HDF_VIBRATOR is not set
++# LOSCFG_DRIVERS_HDF_VIBRATOR_LINEAR is not set
+ LOSCFG_DRIVERS_SD=y
+ LOSCFG_DRIVERS_EMMC=y
+ LOSCFG_DRIVERS_HI3881=y
+ LOSCFG_DRIVERS_TZDRIVER=y
+ LOSCFG_DRIVERS_HIEVENT=y
+-LOSCFG_DRIVERS_HDF_AUDIO=y
+-LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516=y
+-LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879=y
++# LOSCFG_DRIVERS_HDF_AUDIO is not set
++# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516 is not set
++# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879 is not set
+diff --git a/hispark_taurus/ohos.build b/hispark_taurus/ohos.build
+index 47b0c7a..70531f7 100644
+--- a/hispark_taurus/ohos.build
++++ b/hispark_taurus/ohos.build
+@@ -2,8 +2,7 @@
+   "parts": {
+     "product_ipcamera_hispark_taurus": {
+       "module_list": [
+-        "//vendor/hisilicon/hispark_taurus:hispark_taurus",
+-        "//vendor/hisilicon/hispark_taurus/hals/audio:hdf_audio_config"
++        "//vendor/hisilicon/hispark_taurus:hispark_taurus"
+       ]
+     }
+   },

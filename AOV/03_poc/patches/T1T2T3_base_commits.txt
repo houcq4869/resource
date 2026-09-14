@@ -1,0 +1,7 @@
+device/soc/hisilicon 2ce69247 6 files changed, 231 insertions(+), 156 deletions(-)
+drivers/hdf_core 9959591f 1 file changed, 8 insertions(+)
+kernel/liteos_a dd6138e3 2 files changed, 7 insertions(+), 4 deletions(-)
+base/powermgr/powermgr_lite 7137cd8  1 file changed, 9 insertions(+), 7 deletions(-)
+vendor/hisilicon cc5f726  10 files changed, 59 insertions(+), 624 deletions(-)
+kernel/liteos_a dd6138e3
+device/soc/hisilicon 2ce69247

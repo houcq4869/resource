@@ -1,0 +1,13 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index afe6f250..746b08c8 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -93,8 +93,6 @@ group("fwk_group") {
+     }
+   } else if (os_level == "small") {
+     deps = [
+-      "//base/security/huks/frameworks/crypto_lite/cipher:cipher_shared",
+-      "//base/security/huks/frameworks/crypto_lite/js/builtin:ace_kit_cipher",
+       "//base/security/huks/frameworks/huks_lite:huks_sdk",
+     ]
+   } else {

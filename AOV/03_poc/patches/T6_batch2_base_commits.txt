@@ -1,0 +1,6 @@
+1b620e1 !40 safwk_lite组件依赖改成弱耦合 Merge pull request !40 from 吴敏杰/master
+d12b568 !244 update OAT.xml. Merge pull request !244 from wanglingyi/N/A
+base/powermgr/battery_lite 061b746 !68 fix: test repair Merge pull request !68 from kongwei/master
+base/hiviewdfx/hilog_lite 387cde9 !227 change comparasion for ret Merge pull request !227 from buzhenwang/master
+base/security/huks a61282ec !2199 merge fix_group_6.1 into OpenHarmony-6.1-Release
+foundation/multimedia/media_lite d12b568 !244 update OAT.xml. Merge pull request !244 from wanglingyi/N/A
