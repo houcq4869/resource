@@ -1,3 +1,10 @@
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 00000000..71d9deda
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1 @@
++framework/test/unittest/utils/hcs_parser/unittest/hdf_macro_test.h
 diff --git a/adapter/khdf/liteos/Kconfig b/adapter/khdf/liteos/Kconfig
 index 05e079f9..6cd43bbc 100644
 --- a/adapter/khdf/liteos/Kconfig

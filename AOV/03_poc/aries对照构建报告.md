@@ -31,6 +31,8 @@
 | OHOS_Image.bin | 4,554,752 B | 6,463,488 B |
 | 镜像格式 | jffs2 ×3（打包成功） | vfat ×3 |
 | OsIdleTask 覆写 | **0x7c(124B)**，UP 分支（无 cpuid 判断）✓ | 0x88(136B)，SMP 分支 ✓ |
+
+> **V1.1 尺寸演变注**：上表为当时（K1 前）实测值。K1 分档锁将 idle 循环简化（去 LockCountGet 前置判断，否决/降级逻辑收敛入内核）后，当前值为 **taurus 0x80(128B) / aries 0x6C(108B)**——与《第二步机制扩展_K1K3K5报告》及提交版文档口径一致。
 | g_percpu 兼容符号 | .bss 4B（UP ABI 兼容）✓ | SMP 原生定义 |
 | T4 链路 | Hi35xxRtcWriteSysTime(0x258)/Hi35xxRtcReadEpoch(0xdc)/sntp_init(0xa8) ✓ | 同款 ✓ + OsShellCmdNtpdate/LwipSntpSetSystemTime |
 | AOV 字符串 | [AOV-PM]/[AOV-TIME]/[TTFF] 9 处 ✓ | 10 处 ✓ |
@@ -40,7 +42,7 @@
 
 ### 2.2 taurus 最终 clean 重建（刷新陈旧对象后复验）
 
-背景：T4 期间发现 taurus 增量构建存在**陈旧对象**（api_shell.o 早于 LWIP_SNTP 启用未重编，depfile 未追踪 lwipopts.h）——最终 clean 重建（5129 targets）后全符号复验通过：LwipSntpSetSystemTime/OsShellCmdNtpdate/sntp_init/OsIdleTask(136B)/Hi35xxRtcReadEpoch/g_osPmTimeOffsetCycle(.bss 8B) + aov_poc 在位；rootfs 19.46MB/userfs 5.11MB/img 19.85MB（与第三批一致，api_shell ntpdate 块移除属预期内微小变化）。
+背景：T4 期间发现 taurus 增量构建存在**陈旧对象**（api_shell.o 早于 LWIP_SNTP 启用未重编，depfile 未追踪 lwipopts.h）——最终 clean 重建（5129 targets）后全符号复验通过：LwipSntpSetSystemTime/OsShellCmdNtpdate/sntp_init/OsIdleTask（当时 136B，K1 简化后 128B）/Hi35xxRtcReadEpoch/g_osPmTimeOffsetCycle(.bss 8B) + aov_poc 在位；rootfs 19.46MB/userfs 5.11MB/img 19.85MB（与第三批一致，api_shell ntpdate 块移除属预期内微小变化）。
 
 **构建纪律强化**：凡涉及 lwipopts.h/config.h 级宏变更，必须 clean 重建验证（depfile 对 imacros/多级重定向头追踪不完整）。
 

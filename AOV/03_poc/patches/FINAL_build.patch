@@ -1,3 +1,15 @@
+diff --git a/.gitignore b/.gitignore
+index acbb380f..c9c60b0d 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -3,4 +3,5 @@
+ .idea/
+ .vscode/
+ build_scripts/rundocker.sh
+-tags
+\ No newline at end of file
++tags
++hb/ohos_build.egg-info/
 diff --git a/lite/make_rootfs/rootfs_liteos.config b/lite/make_rootfs/rootfs_liteos.config
 index e106f193..39ccd5dd 100644
 --- a/lite/make_rootfs/rootfs_liteos.config

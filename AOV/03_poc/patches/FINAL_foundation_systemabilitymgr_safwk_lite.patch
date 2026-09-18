@@ -1,0 +1,17 @@
+diff --git a/bundle.json b/bundle.json
+index 6c9f9d6..2555203 100644
+--- a/bundle.json
++++ b/bundle.json
+@@ -22,9 +22,9 @@
+             "linux"
+         ],
+         "features": [
+-            "safwk_lite_feature_enable_abilityms ",
+-            "safwk_lite_feature_enable_bundlems ",
+-            "safwk_lite_feature_enable_dtbschedmgr "
++            "safwk_lite_feature_enable_abilityms",
++            "safwk_lite_feature_enable_bundlems",
++            "safwk_lite_feature_enable_dtbschedmgr"
+         ],
+         "rom": "100KB",
+         "ram": "2048KB",

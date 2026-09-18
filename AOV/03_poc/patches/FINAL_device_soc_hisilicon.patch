@@ -1,3 +1,15 @@
+diff --git a/.gitignore b/.gitignore
+index a8495e45..c7d4e9e2 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1 +1,5 @@
+-ws63v100/sdk/interim_binary/ws63/libs/**
+\ No newline at end of file
++ws63v100/sdk/interim_binary/ws63/libs/**
++__pycache__/
++*.pyc
++ws63v100/sdk/output/
++ws63v100/sdk/application/ws63/ws63_liteos_mfg/*.bin
 diff --git a/common/hal/media/build.sh b/common/hal/media/build.sh
 index 883bd922..855a70e8 100755
 --- a/common/hal/media/build.sh
@@ -104,10 +116,10 @@ index 00000000..c5cd6f04
 +include $(HDF_DRIVER)
 diff --git a/common/platform/pm/pm_hi35xx.c b/common/platform/pm/pm_hi35xx.c
 new file mode 100644
-index 00000000..d3e884cf
+index 00000000..1f42fa26
 --- /dev/null
 +++ b/common/platform/pm/pm_hi35xx.c
-@@ -0,0 +1,170 @@
+@@ -0,0 +1,190 @@
 +/*
 + * Copyright (c) 2026 HiSilicon (Shanghai) Technologies CO., LIMITED.
 + * Licensed under the Apache License, Version 2.0 (the "License");
@@ -155,9 +167,11 @@ index 00000000..d3e884cf
 +STATIC BOOL g_pmSysctrlInited = FALSE;
 +
 +/* AOV T4b：DEEP 休眠时间 offset 补偿。RTC epoch 读取由 rtc 驱动导出（weak 引用，
-+ * 未编入 rtc 驱动的平台自动退化为不补偿）。第一阶段 deepSuspend=WFI+计时框架
-+ * （CNTPCT 不停走，offset 增量≈0，机制自校验）；第三步真实电源域关断（CNTPCT
-+ * 掉电）后由 RTC 差值补偿丢失 cycles，保证录像时间轴跨深睡连续。 */
++ * 未编入 rtc 驱动的平台自动退化为不补偿）。S2 修复后时序：early（可睡眠）采集
++ * RTC/CNTPCT 起点 → deepSuspend 仅 WFI（关中断临界区）→ late（非临界区）读 RTC
++ * 终点并叠加 offset。第一阶段 deepSuspend=WFI+计时框架（CNTPCT 不停走，offset
++ * 增量≈0，机制自校验）；第三步真实电源域关断（CNTPCT 掉电）后由 RTC 差值补偿
++ * 丢失 cycles，保证录像时间轴跨深睡连续。 */
 +extern int Hi35xxRtcReadEpoch(long long *epochSec) __attribute__((weak));
 +
 +STATIC UINT64 g_pmDeepStartCycle = 0;
@@ -165,17 +179,54 @@ index 00000000..d3e884cf
 +
 +STATIC UINT32 HiPmEarlySuspend(UINT32 mode)
 +{
-+    (VOID)mode;
 +    g_pmEarlyTick = (UINT32)LOS_TickCountGet();
++    /* Fixes: Kimi/02_代码审查报告.md #S2 (2026-09-17)
++     * deep 档的 RTC epoch 读取（SPI+OsalMSleep，可睡眠）必须在 early 完成——
++     * early 运行于可睡眠上下文；deepSuspend/deepResume 处于关中断+持锁
++     * 临界区，只允许寄存器级操作（见 los_pm.h LosPmSysctrl 上下文契约）。 */
++    if (mode == LOS_SYS_DEEP_SLEEP) {
++        g_pmDeepStartCycle = HalClockGetCycles();
++        g_pmDeepStartEpoch = -1;
++        if (Hi35xxRtcReadEpoch != NULL) {
++            (VOID)Hi35xxRtcReadEpoch(&g_pmDeepStartEpoch);
++        }
++    }
 +    return LOS_OK;
++}
++
++/* S2：offset 补偿在 late 执行（S1 修复后 late 位于非临界区，可睡眠）。
++ * 注意：唤醒到本函数执行之间存在极小窗口，期间读取的时间不含睡眠时长，
++ * 对 1fps 值守业务无影响；第三步正式深睡时如需严格时序，可在
++ * deepResume 内用寄存器快照做最小修正。 */
++STATIC VOID HiPmDeepOffsetApply(VOID)
++{
++    long long epochNow = -1;
++    UINT64 elapsedCycle;
++    UINT64 rtcElapsedCycle;
++
++    if ((g_pmDeepStartEpoch < 0) || (Hi35xxRtcReadEpoch == NULL)) {
++        return;
++    }
++    if (Hi35xxRtcReadEpoch(&epochNow) != 0) {
++        return;
++    }
++    elapsedCycle = HalClockGetCycles() - g_pmDeepStartCycle;
++    rtcElapsedCycle = (UINT64)(epochNow - g_pmDeepStartEpoch) * PM_CYCLES_PER_SEC;
++    if (rtcElapsedCycle > elapsedCycle) {
++        LOS_PmTimeOffsetAdd(rtcElapsedCycle - elapsedCycle);
++        PRINTK("[AOV-PM] deep resume: offset +%u cycles (rtc %ds)\n",
++            (UINT32)(rtcElapsedCycle - elapsedCycle), (int)(epochNow - g_pmDeepStartEpoch));
++    }
 +}
 +
 +STATIC VOID HiPmLateResume(UINT32 mode)
 +{
 +    UINT32 cost;
 +
-+    (VOID)mode;
 +    cost = (UINT32)LOS_TickCountGet() - g_pmEarlyTick;
++    if (mode == LOS_SYS_DEEP_SLEEP) {
++        HiPmDeepOffsetApply();
++    }
 +    g_pmSuspendCount++;
 +    g_pmSuspendTotalMs += cost;
 +    if (cost > g_pmSuspendMaxMs) {
@@ -203,11 +254,8 @@ index 00000000..d3e884cf
 +
 +STATIC UINT32 HiPmDeepSuspend(VOID)
 +{
-+    g_pmDeepStartCycle = HalClockGetCycles();
-+    g_pmDeepStartEpoch = -1;
-+    if (Hi35xxRtcReadEpoch != NULL) {
-+        (void)Hi35xxRtcReadEpoch(&g_pmDeepStartEpoch);
-+    }
++    /* S2：本函数运行于关中断+持 g_pmSpin 临界区，只允许寄存器级操作。
++     * RTC epoch 起点已在 HiPmEarlySuspend 采集；offset 补偿在 HiPmLateResume。 */
 +    /* 第三步在此插入电源域关断序列（依赖海思低功耗 SDK，NDA） */
 +    WFI;
 +    return LOS_OK;
@@ -215,23 +263,7 @@ index 00000000..d3e884cf
 +
 +STATIC VOID HiPmDeepResume(VOID)
 +{
-+    long long epochNow = -1;
-+    UINT64 elapsedCycle;
-+    UINT64 rtcElapsedCycle;
-+
-+    if ((g_pmDeepStartEpoch < 0) || (Hi35xxRtcReadEpoch == NULL)) {
-+        return;
-+    }
-+    if (Hi35xxRtcReadEpoch(&epochNow) != 0) {
-+        return;
-+    }
-+    elapsedCycle = HalClockGetCycles() - g_pmDeepStartCycle;
-+    rtcElapsedCycle = (UINT64)(epochNow - g_pmDeepStartEpoch) * PM_CYCLES_PER_SEC;
-+    if (rtcElapsedCycle > elapsedCycle) {
-+        LOS_PmTimeOffsetAdd(rtcElapsedCycle - elapsedCycle);
-+        PRINTK("[AOV-PM] deep resume: offset +%u cycles (rtc %ds)\n",
-+            (UINT32)(rtcElapsedCycle - elapsedCycle), (int)(epochNow - g_pmDeepStartEpoch));
-+    }
++    /* S2：关中断临界区，不执行任何可睡眠操作；时间补偿已由 late 钩子处理 */
 +}
 +
 +STATIC LosPmSysctrl g_hiPmSysctrl = {
@@ -279,7 +311,7 @@ index 00000000..d3e884cf
 +
 +#endif /* LOSCFG_KERNEL_PM */
 diff --git a/common/platform/rtc/rtc_hi35xx.c b/common/platform/rtc/rtc_hi35xx.c
-index 994ef614..1f0571da 100644
+index 994ef614..ba9084fb 100644
 --- a/common/platform/rtc/rtc_hi35xx.c
 +++ b/common/platform/rtc/rtc_hi35xx.c
 @@ -23,6 +23,7 @@
@@ -290,7 +322,7 @@ index 994ef614..1f0571da 100644
  
  #define HDF_LOG_TAG rtc_hi35xx
  
-@@ -798,6 +799,139 @@ static int32_t HiRtcBind(struct HdfDeviceObject *device)
+@@ -798,6 +799,147 @@ static int32_t HiRtcBind(struct HdfDeviceObject *device)
      return HDF_SUCCESS;
  }
  
@@ -359,6 +391,14 @@ index 994ef614..1f0571da 100644
 +        HDF_LOGI("[AOV-TIME] boot sync skipped: rtc not set (year=%u)", rt.year);
 +        return;
 +    }
++    /* Fixes: Kimi/02_代码审查报告.md #M4 (2026-09-17)
++     * RTC 寄存器可能读出越界字段（掉电/未初始化），全部校验避免算出垃圾时间 */
++    if (rt.month < 1 || rt.month > 12 || rt.day < 1 || rt.day > 31 ||
++        rt.hour > 23 || rt.minute > 59 || rt.second > 59) {
++        HDF_LOGI("[AOV-TIME] boot sync skipped: invalid rtc fields (%u-%u-%u %u:%u:%u)",
++            rt.year, rt.month, rt.day, rt.hour, rt.minute, rt.second);
++        return;
++    }
 +    days = HiRtcCivilToDays(rt.year, rt.month, rt.day);
 +    tv.tv_sec = (time_t)(days * SEC_PER_DAY + rt.hour * SEC_PER_HOUR + rt.minute * SEC_PER_MIN + rt.second);
 +    tv.tv_usec = (suseconds_t)((unsigned int)rt.millisecond * USEC_PER_MSEC);
@@ -370,7 +410,7 @@ index 994ef614..1f0571da 100644
 +    }
 +}
 +
-+/* 供 lwip SNTP 校时回调弱引用调用（fixme.c LwipSntpSetSystemTime）：系统时间→RTC */
++/* 供 lwip SNTP 校时回调弱引用调用（sntp_port.c LwipSntpSetSystemTime）：系统时间→RTC */
 +int Hi35xxRtcWriteSysTime(void)
 +{
 +    struct RtcTime rt = {0};
@@ -430,7 +470,7 @@ index 994ef614..1f0571da 100644
  static int32_t HiRtcInit(struct HdfDeviceObject *device)
  {
      struct RtcHost *host = NULL;
-@@ -834,6 +968,8 @@ static int32_t HiRtcInit(struct HdfDeviceObject *device)
+@@ -834,6 +976,8 @@ static int32_t HiRtcInit(struct HdfDeviceObject *device)
  
      host->method = &g_method;
      host->data = rtcInfo;

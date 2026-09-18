@@ -1,0 +1,431 @@
+diff --git a/hispark_taurus/aov_poc/aov_poc.c b/hispark_taurus/aov_poc/aov_poc.c
+index 21ffebf..cc648ea 100644
+--- a/hispark_taurus/aov_poc/aov_poc.c
++++ b/hispark_taurus/aov_poc/aov_poc.c
+@@ -16,7 +16,7 @@
+ /*
+  * AOV PoC T5：值守单帧循环业务骨架（阶段4 §3.5 落地载体）
+  *
+- * 循环（值守态，间隔可配 0.5~4s）：
++ * 循环（值守态，间隔可配 1~60s）：
+  *   SNAP 单帧触发 → VENC 取流 → MD 检测(桩) → 攒批缓存 → 满批/定时 flush 落盘(fsync)
+  *   → sleep(interval)【期间内核 idle PM 钩子自动挂起 CPU，T2/T3 链路】
+  *   MD 命中 → ACTIVE 突发：连续取流 N 秒(滞回) → 回值守
+@@ -46,6 +46,7 @@
+ #include <sys/time.h>
+ #include <sys/stat.h>
+ #include <sys/types.h>
++#include <errno.h>
+ 
+ #include "hi_common.h"
+ #include "hi_comm_video.h"
+@@ -97,7 +98,7 @@ extern ISP_SNS_OBJ_S stSnsImx335Obj;
+ #define AOV_OUT_DIR_DEFAULT     "/sdcard/aov"
+ #define AOV_OUT_NAME_LEN        128
+ 
+-#define AOV_INTERVAL_DEFAULT_S  1                      /* 值守间隔（0.5~4s 可配） */
++#define AOV_INTERVAL_DEFAULT_S  1                      /* 值守间隔（秒，可配范围 1~60） */
+ #define AOV_ACTIVE_DURATION_S   15                     /* 事件突发录像时长 */
+ #define AOV_ACTIVE_HYSTERESIS   5                      /* 连续 N 帧无目标退回值守（业界同款） */
+ #define AOV_STAT_PERIOD         64                     /* 每 64 周期打印统计 */
+@@ -132,6 +133,11 @@ typedef struct {
+     unsigned int batchLen;
+     unsigned int segFrames;
+     unsigned int segIndex;
++    /* Fixes: Kimi/02_代码审查报告.md #M8 (2026-09-17)：段路径跨 flush 持久化，
++     * 新段开启时请求 IDR 保证段首即关键帧（可独立回放） */
++    char segPath[AOV_OUT_NAME_LEN];
++    HI_BOOL needIdr;
++    unsigned int getStreamErrs; /* GetStream 连续错误计数（超时无帧不计） */
+ } AovCtx;
+ 
+ static AovCtx g_ctx;
+@@ -422,43 +428,68 @@ static HI_S32 AovSegmentPath(char *path, unsigned int len)
+     return (n > 0 && (unsigned int)n < len) ? HI_SUCCESS : HI_FAILURE;
+ }
+ 
+-/* 攒批 flush：写段文件 + fsync（休眠前/满批/事件时调用，减少 SD IO 唤醒次数） */
+-static HI_S32 AovBatchFlush(void)
++/* 段内写入：短写重试 + fsync（Fixes: Kimi/02 #M8 短写静默丢数据问题） */
++static HI_S32 AovWriteToSeg(const unsigned char *data, unsigned int len)
+ {
+-    char path[AOV_OUT_NAME_LEN];
+     int fd;
+-    ssize_t written;
++    unsigned int done = 0;
+ 
+-    if (g_ctx.batchLen == 0) {
+-        return HI_SUCCESS;
+-    }
+-    if (AovSegmentPath(path, sizeof(path)) != HI_SUCCESS) {
++    if (g_ctx.segPath[0] == '\0' && AovSegmentPath(g_ctx.segPath, sizeof(g_ctx.segPath)) != HI_SUCCESS) {
+         return HI_FAILURE;
+     }
+-    fd = open(path, O_WRONLY | O_CREAT | O_APPEND, 0644);
++    fd = open(g_ctx.segPath, O_WRONLY | O_CREAT | O_APPEND, 0644);
+     if (fd < 0) {
+-        printf("[AOV] open %s failed\n", path);
++        printf("[AOV] open %s failed\n", g_ctx.segPath);
++        return HI_FAILURE;
++    }
++    while (done < len) {
++        ssize_t w = write(fd, data + done, len - done);
++        if (w <= 0) {
++            printf("[AOV] write failed %u/%u\n", done, len);
++            (void)close(fd);
++            return HI_FAILURE;
++        }
++        done += (unsigned int)w;
++    }
++    if (fsync(fd) != 0) {
++        printf("[AOV] fsync %s failed\n", g_ctx.segPath);
++        (void)close(fd);
+         return HI_FAILURE;
+     }
+-    written = write(fd, g_ctx.batchBuf, g_ctx.batchLen);
+-    (void)fsync(fd);
+     (void)close(fd);
+-    if (written != (ssize_t)g_ctx.batchLen) {
+-        printf("[AOV] short write %zd/%u\n", written, g_ctx.batchLen);
++    g_ctx.bytes += len;
++    return HI_SUCCESS;
++}
++
++/* 攒批 flush：写段文件（休眠前/满批/事件时调用，减少 SD IO 唤醒次数） */
++static HI_S32 AovBatchFlush(void)
++{
++    if (g_ctx.batchLen == 0) {
++        return HI_SUCCESS;
++    }
++    if (AovWriteToSeg(g_ctx.batchBuf, g_ctx.batchLen) != HI_SUCCESS) {
+         return HI_FAILURE;
+     }
+-    g_ctx.bytes += g_ctx.batchLen;
+     g_ctx.flushes++;
+     g_ctx.batchLen = 0;
+-    if (++g_ctx.segFrames >= AOV_SEGMENT_FRAMES) {
++    /* Fixes: Kimi/02 #M8 —— segFrames 现按帧计数（在 GetStream 成功处递增），
++     * 段滚动时换新文件名并请求 IDR，保证每段可独立解码 */
++    if (g_ctx.segFrames >= AOV_SEGMENT_FRAMES) {
+         g_ctx.segFrames = 0;
+         g_ctx.segIndex++;
++        g_ctx.segPath[0] = '\0';
++        g_ctx.needIdr = HI_TRUE;
+     }
+     return HI_SUCCESS;
+ }
+ 
+ static HI_S32 AovBatchAppend(const HI_U8 *data, HI_U32 len)
+ {
++    /* Fixes: Kimi/02 #M8 —— 单 pack 超批容量时绕过攒批直写，防御堆溢出 */
++    if (len > AOV_BATCH_BYTES) {
++        AOV_CHECK_RET(AovBatchFlush(), "batch flush");
++        return AovWriteToSeg(data, len);
++    }
+     if (g_ctx.batchLen + len > AOV_BATCH_BYTES) {
+         AOV_CHECK_RET(AovBatchFlush(), "batch flush");
+     }
+@@ -471,13 +502,27 @@ static HI_S32 AovBatchAppend(const HI_U8 *data, HI_U32 len)
+ static HI_S32 AovGetStreamOnce(HI_BOOL *gotFrame, VIDEO_FRAME_INFO_S *mdFrame)
+ {
+     VENC_STREAM_S stStream;
++    HI_S32 s32Ret;
+     HI_U32 i;
+ 
+     *gotFrame = HI_FALSE;
+     (void)memset(&stStream, 0, sizeof(stStream));
+-    if (HI_MPI_VENC_GetStream(AOV_VENC_CHN, &stStream, AOV_GETSTREAM_TIMEOUT) != HI_SUCCESS) {
+-        return HI_SUCCESS; /* 超时无帧：非错误（值守周期 sensor 未出图时正常） */
++    /* Fixes: Kimi/02 #M8 —— 新段开启首帧请求 IDR，保证段首为关键帧 */
++    if (g_ctx.needIdr) {
++        (void)HI_MPI_VENC_RequestIDR(AOV_VENC_CHN, HI_TRUE);
++        g_ctx.needIdr = HI_FALSE;
++    }
++    s32Ret = HI_MPI_VENC_GetStream(AOV_VENC_CHN, &stStream, AOV_GETSTREAM_TIMEOUT);
++    if (s32Ret != HI_SUCCESS) {
++        /* Fixes: Kimi/02 轻微项 —— 错误不再全吞：超时无帧属值守常态，
++         * 其余错误计数并周期打印，避免 VENC 通道死亡后静默空转 */
++        g_ctx.getStreamErrs++;
++        if ((g_ctx.getStreamErrs % AOV_STAT_PERIOD) == 1) {
++            printf("[AOV] get stream err ret=0x%x (total %u)\n", s32Ret, g_ctx.getStreamErrs);
++        }
++        return HI_SUCCESS;
+     }
++    g_ctx.getStreamErrs = 0;
+     for (i = 0; i < stStream.u32PackCount; i++) {
+         VENC_PACK_S *pack = &stStream.pstPack[i];
+         if (pack->pu8Addr != NULL && pack->u32Len > 0) {
+@@ -490,6 +535,7 @@ static HI_S32 AovGetStreamOnce(HI_BOOL *gotFrame, VIDEO_FRAME_INFO_S *mdFrame)
+     }
+     (void)HI_MPI_VENC_ReleaseStream(AOV_VENC_CHN, &stStream);
+     g_ctx.frames++;
++    g_ctx.segFrames++; /* Fixes: Kimi/02 #M8 —— 段按帧计数（原实现按 flush 次数，名存实亡） */
+     *gotFrame = HI_TRUE;
+     (void)mdFrame; /* [TUNE] MD 用 VI 原始帧（GetChnFrame），阶段2 接入时补充 */
+     return HI_SUCCESS;
+@@ -501,8 +547,14 @@ static void AovActiveBurst(void)
+     int missCnt = 0;
+     int elapsedS = 0;
+     HI_BOOL gotFrame = HI_FALSE;
++    /* Fixes: Kimi/02_代码审查报告.md #M6 (2026-09-17)
++     * 计时必须用本次 burst 起点快照——原实现用进程累计帧数折算，
++     * 累计超阈值后第二次起 ACTIVE 会第一轮即退出、滞回同时失效 */
++    unsigned long burstStartFrames;
++    unsigned long burstFrames;
+ 
+     g_ctx.activeEntries++;
++    burstStartFrames = g_ctx.frames;
+     printf("[AOV] -> ACTIVE burst %ds\n", AOV_ACTIVE_DURATION_S);
+     if (AovVencSetActive(HI_TRUE) != HI_SUCCESS) {
+         return;
+@@ -523,11 +575,12 @@ static void AovActiveBurst(void)
+             }
+         }
+         usleep(1000 * 1000 / AOV_FPS);
+-        elapsedS = (int)(g_ctx.frames / AOV_FPS); /* 粗计时；[TUNE] 联调期换 gettimeofday 差值 */
++        elapsedS = (int)((g_ctx.frames - burstStartFrames) / AOV_FPS); /* 粗计时；[TUNE] 联调期换 gettimeofday 差值 */
+     }
+     (void)AovBatchFlush(); /* 事件录像立即落盘（"上传完成才可休眠"前置） */
+     (void)AovVencSetActive(HI_FALSE);
+-    printf("[AOV] <- back to watch, burst frames=%lu\n", g_ctx.frames);
++    burstFrames = g_ctx.frames - burstStartFrames;
++    printf("[AOV] <- back to watch, burst frames=%lu\n", burstFrames);
+ }
+ 
+ /* ==================== 主循环 ==================== */
+@@ -578,7 +631,7 @@ static void AovLoop(void)
+                 g_ctx.cycles, g_ctx.frames, g_ctx.bytes,
+                 g_ctx.flushes, g_ctx.activeEntries, g_ctx.cycleCostMaxMs);
+         }
+-        /* 6. 值守间隔休眠——期间内核 idle PM 钩子自动挂起 CPU（T2/T3 链路生效点） */
++        /* 7. 值守间隔休眠——期间内核 idle PM 钩子自动挂起 CPU（T2/T3 链路生效点） */
+         if (g_ctx.durationS > 0 && difftime(time(NULL), startSec) >= g_ctx.durationS) {
+             break;
+         }
+@@ -595,7 +648,7 @@ static void AovSigHandler(int sig)
+ /* ==================== main ==================== */
+ static void AovUsage(const char *prog)
+ {
+-    printf("Usage: %s [-i interval_s(1)] [-d duration_s(0=inf)] [-o outdir(%s)]\n",
++    printf("Usage: %s [-i interval_s(1~60)] [-d duration_s(0=inf)] [-o outdir(%s)]\n",
+         prog, AOV_OUT_DIR_DEFAULT);
+ }
+ 
+@@ -624,7 +677,11 @@ int main(int argc, char **argv)
+         printf("[AOV] batch buf alloc failed\n");
+         return 1;
+     }
+-    (void)mkdir(g_ctx.outDir, 0755);
++    if (mkdir(g_ctx.outDir, 0755) != 0 && errno != EEXIST) {
++        printf("[AOV] mkdir %s failed: %s\n", g_ctx.outDir, strerror(errno));
++        free(g_ctx.batchBuf);
++        return 1;
++    }
+ 
+     (void)signal(SIGINT, AovSigHandler);
+     (void)signal(SIGTERM, AovSigHandler);
+diff --git a/hispark_taurus/hdf_config/device_info/device_info.hcs b/hispark_taurus/hdf_config/device_info/device_info.hcs
+index cf4273c..03b769a 100644
+--- a/hispark_taurus/hdf_config/device_info/device_info.hcs
++++ b/hispark_taurus/hdf_config/device_info/device_info.hcs
+@@ -487,6 +487,114 @@
+         media :: host {
+ 
+         }
++        audio :: host {
++            hostName = "audio_host";
++            priority = 60;
++            device_dai0 :: device {
++                device0 :: deviceNode {
++                    policy = 1;
++                    priority = 50;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "DAI_HI3516";
++                    serviceName = "dai_service";
++                    deviceMatchAttr = "hdf_dai_driver";
++                }
++            }
++            device_codec :: device {
++                device0 :: deviceNode {
++                    policy = 1;
++                    priority = 50;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "CODEC_HI3516";
++                    serviceName = "codec_service_0";
++                    deviceMatchAttr = "hdf_codec_driver";
++                }
++            }
++            device_codec_ex :: device {
++                device0 :: deviceNode {
++                    policy = 1;
++                    priority = 50;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "CODEC_TFA9879";
++                    serviceName = "codec_service_1";
++                    deviceMatchAttr = "hdf_codec_driver_ex";
++                }
++            }
++            device_dsp :: device {
++                device0 :: deviceNode {
++                    policy = 1;
++                    priority = 50;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "DSP";
++                    serviceName = "dsp_service_0";
++                    deviceMatchAttr = "hdf_dsp_driver";
++                }
++            }
++            device_dma :: device {
++                device0 :: deviceNode {
++                    policy = 1;
++                    priority = 50;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "DMA_HI3516";
++                    serviceName = "dma_service_0";
++                    deviceMatchAttr = "hdf_dma_driver";
++                }
++            }
++            device_audio :: device {
++                device0 :: deviceNode {
++                    policy = 2;
++                    priority = 60;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "HDF_AUDIO";
++                    deviceMatchAttr = "hdf_audio_driver_0";
++                    serviceName = "hdf_audio_codec_primary_dev0";
++                }
++                device1 :: deviceNode {
++                    policy = 2;
++                    priority = 60;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "HDF_AUDIO";
++                    deviceMatchAttr = "hdf_audio_driver_1";
++                    serviceName = "hdf_audio_codec_primary_dev1";
++                }
++            }
++            device_stream :: device {
++                device0 :: deviceNode {
++                    policy = 2;
++                    priority = 80;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "HDF_AUDIO_STREAM";
++                    serviceName = "hdf_audio_render";
++                }
++                device1 :: deviceNode {
++                    policy = 2;
++                    priority = 80;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "HDF_AUDIO_STREAM";
++                    serviceName = "hdf_audio_capture";
++                }
++            }
++            device_control :: device {
++                device0 :: deviceNode {
++                    policy = 2;
++                    priority = 80;
++                    preload = 0;
++                    permission = 0666;
++                    moduleName = "HDF_AUDIO_CONTROL";
++                    serviceName = "hdf_audio_control";
++                }
++            }
++        }
++
+         usbfn :: host {
+             hostName = "usbfn_host";
+             usbfn_device :: device {
+diff --git a/hispark_taurus/hdf_config/hdf.hcs b/hispark_taurus/hdf_config/hdf.hcs
+index db256cb..69dae5d 100755
+--- a/hispark_taurus/hdf_config/hdf.hcs
++++ b/hispark_taurus/hdf_config/hdf.hcs
+@@ -21,6 +21,11 @@
+ #include "input/input_config.hcs"
+ #include "usb/usb_device.hcs"
+ #include "usb/usb_pnp_device.hcs"
++#include "audio/audio_config.hcs"
++#include "audio/codec_config.hcs"
++#include "audio/dai_config.hcs"
++#include "audio/dma_config.hcs"
++#include "audio/dsp_config.hcs"
+ 
+ root {
+     module = "hisilicon,hi35xx_chip";
+diff --git a/hispark_taurus/kernel_configs/debug.config b/hispark_taurus/kernel_configs/debug.config
+index 8565029..81e3db7 100755
+--- a/hispark_taurus/kernel_configs/debug.config
++++ b/hispark_taurus/kernel_configs/debug.config
+@@ -90,6 +90,6 @@ LOSCFG_DRIVERS_SD=y
+ LOSCFG_DRIVERS_EMMC=y
+ LOSCFG_DRIVERS_HI3881=y
+ LOSCFG_DRIVERS_HIEVENT=y
+-# LOSCFG_DRIVERS_HDF_AUDIO is not set
+-# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516 is not set
+-# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879 is not set
++LOSCFG_DRIVERS_HDF_AUDIO=y
++LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516=y
++LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879=y
+diff --git a/hispark_taurus/kernel_configs/debug_tee.config b/hispark_taurus/kernel_configs/debug_tee.config
+index 5f6175f..d98770e 100755
+--- a/hispark_taurus/kernel_configs/debug_tee.config
++++ b/hispark_taurus/kernel_configs/debug_tee.config
+@@ -91,6 +91,6 @@ LOSCFG_DRIVERS_EMMC=y
+ LOSCFG_DRIVERS_HI3881=y
+ LOSCFG_DRIVERS_TZDRIVER=y
+ LOSCFG_DRIVERS_HIEVENT=y
+-# LOSCFG_DRIVERS_HDF_AUDIO is not set
+-# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516 is not set
+-# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879 is not set
++LOSCFG_DRIVERS_HDF_AUDIO=y
++LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516=y
++LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879=y
+diff --git a/hispark_taurus/kernel_configs/release.config b/hispark_taurus/kernel_configs/release.config
+index dd0dd19..957cdcd 100755
+--- a/hispark_taurus/kernel_configs/release.config
++++ b/hispark_taurus/kernel_configs/release.config
+@@ -86,6 +86,6 @@ LOSCFG_DRIVERS_SD=y
+ LOSCFG_DRIVERS_EMMC=y
+ LOSCFG_DRIVERS_HI3881=y
+ LOSCFG_DRIVERS_HIEVENT=y
+-# LOSCFG_DRIVERS_HDF_AUDIO is not set
+-# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516 is not set
+-# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879 is not set
++LOSCFG_DRIVERS_HDF_AUDIO=y
++LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516=y
++LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879=y
+diff --git a/hispark_taurus/kernel_configs/release_tee.config b/hispark_taurus/kernel_configs/release_tee.config
+index 4c0916d..6ee7244 100755
+--- a/hispark_taurus/kernel_configs/release_tee.config
++++ b/hispark_taurus/kernel_configs/release_tee.config
+@@ -88,6 +88,6 @@ LOSCFG_DRIVERS_EMMC=y
+ LOSCFG_DRIVERS_HI3881=y
+ LOSCFG_DRIVERS_TZDRIVER=y
+ LOSCFG_DRIVERS_HIEVENT=y
+-# LOSCFG_DRIVERS_HDF_AUDIO is not set
+-# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516 is not set
+-# LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879 is not set
++LOSCFG_DRIVERS_HDF_AUDIO=y
++LOSCFG_DRIVERS_HDF_AUDIO_CODEC_HI3516=y
++LOSCFG_DRIVERS_HDF_AUDIO_CODEC_TF9879=y
+diff --git a/hispark_taurus/ohos.build b/hispark_taurus/ohos.build
+index 70531f7..47b0c7a 100644
+--- a/hispark_taurus/ohos.build
++++ b/hispark_taurus/ohos.build
+@@ -2,7 +2,8 @@
+   "parts": {
+     "product_ipcamera_hispark_taurus": {
+       "module_list": [
+-        "//vendor/hisilicon/hispark_taurus:hispark_taurus"
++        "//vendor/hisilicon/hispark_taurus:hispark_taurus",
++        "//vendor/hisilicon/hispark_taurus/hals/audio:hdf_audio_config"
+       ]
+     }
+   },

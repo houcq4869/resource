@@ -1,8 +1,40 @@
 diff --git a/fs/proc/os_adapt/power_proc.c b/fs/proc/os_adapt/power_proc.c
-index 4e2be2e2..40914e7b 100644
+index 4e2be2e2..c0404d35 100644
 --- a/fs/proc/os_adapt/power_proc.c
 +++ b/fs/proc/os_adapt/power_proc.c
-@@ -254,7 +254,7 @@ void ProcPmInit(void)
+@@ -36,6 +36,7 @@
+ #ifdef LOSCFG_KERNEL_PM
+ #include "los_memory.h"
+ #include "los_pm.h"
++#include "los_event.h"
+ #include "los_vm_map.h"
+ #include "user_copy.h"
+ 
+@@ -178,7 +179,11 @@ static const struct ProcFileOperations PowerMode = {
+ static int PowerCountRead(struct SeqBuf *m, void *v)
+ {
+     (void)v;
+-    UINT32 count = LOS_PmReadLock();
++    /* Fixes: Kimi/02_代码审查报告.md #M3 (2026-09-17)
++     * LOS_PmReadLock 现返回事件位/超时码而非锁计数，需换算回计数语义：
++     * 超时=锁仍被持有（打印实时计数），事件位=锁已清零。 */
++    UINT32 ret = LOS_PmReadLock();
++    UINT32 count = (ret == LOS_ERRNO_EVENT_READ_TIMEOUT) ? LOS_PmLockCountGet() : 0;
+ 
+     LosBufPrintf(m, "%u\n", count);
+     return 0;
+@@ -206,7 +211,9 @@ static int PowerCountWrite(struct ProcFile *pf, const char *buf, size_t count, l
+     weakCount = atoi(buf);
+     ret = LOS_PmSuspend(weakCount);
+     (VOID)LOS_MemFree(m_aucSysMem1, kbuf);
+-    return -(int)ret;
++    /* Fixes: Kimi/02_代码审查报告.md #M5 (2026-09-17)
++     * 成功时应返回消费字节数（VFS write 语义），原实现恒返 0 致 shell echo 报错 */
++    return (ret == LOS_OK) ? (int)count : -(int)ret;
+ }
+ 
+ static const struct ProcFileOperations PowerCount = {
+@@ -254,7 +261,7 @@ void ProcPmInit(void)
      unlock->uid = OS_POWER_PRIVILEGE;
      unlock->gid = OS_POWER_PRIVILEGE;
  
@@ -70,7 +102,7 @@ index 4d883916..81dbf34d 100644
 +Percpu g_percpu[LOSCFG_KERNEL_CORE_NUM];
  #endif
 diff --git a/kernel/extended/power/los_pm.c b/kernel/extended/power/los_pm.c
-index 3c74751d..f204381c 100644
+index 3c74751d..52e695ff 100644
 --- a/kernel/extended/power/los_pm.c
 +++ b/kernel/extended/power/los_pm.c
 @@ -60,15 +60,24 @@ typedef struct {
@@ -273,16 +305,21 @@ index 3c74751d..f204381c 100644
          goto EXIT;
      }
  
-@@ -219,7 +279,7 @@ STATIC UINT32 OsPmSuspendSleep(LosPmCB *pm)
+@@ -219,21 +279,53 @@ STATIC UINT32 OsPmSuspendSleep(LosPmCB *pm)
  
  EXIT:
      pm->sysMode = LOS_SYS_NORMAL_SLEEP;
 -    OsPmResumePrepare(pm, (UINT32)mode, prepare);
-+    OsPmResumePrepare(pm, (UINT32)mode, prepare, devSuspended);
- 
+-
      LOS_SpinUnlockRestore(&g_pmSpin, intSave);
      LOS_TaskUnlock();
-@@ -228,12 +288,41 @@ EXIT:
++    /* Fixes: Kimi/02_代码审查报告.md #S1 (2026-09-17)
++     * 设备 resume 与 sysctrl->late 必须在 g_pmSpin 释放、调度恢复之后执行：
++     * 回调内可能 PRINTK、重入 LOS_PmLockCountGet（否则自旋锁重入死锁）
++     * 或执行可睡眠操作（如 RTC SPI 读取）。 */
++    OsPmResumePrepare(pm, (UINT32)mode, prepare, devSuspended);
+     return ret;
+ }
  
  STATIC UINT32 OsPmDeviceRegister(LosPmCB *pm, LosPmDevice *device)
  {
@@ -325,7 +362,7 @@ index 3c74751d..f204381c 100644
      LOS_SpinUnlock(&g_pmSpin);
  
      return LOS_OK;
-@@ -302,12 +391,25 @@ UINT32 LOS_PmRegister(LOS_PmNodeType type, VOID *node)
+@@ -302,12 +394,25 @@ UINT32 LOS_PmRegister(LOS_PmNodeType type, VOID *node)
  
  STATIC UINT32 OsPmDeviceUnregister(LosPmCB *pm, const LosPmDevice *device)
  {
@@ -356,7 +393,19 @@ index 3c74751d..f204381c 100644
      }
  
      LOS_SpinUnlock(&g_pmSpin);
-@@ -358,6 +460,26 @@ VOID LOS_PmWakeSet(VOID)
+@@ -327,6 +432,11 @@ STATIC UINT32 OsPmSysctrlUnregister(LosPmCB *pm, LosPmSysctrl *sysctrl)
+ 
+ UINT32 LOS_PmUnregister(LOS_PmNodeType type, VOID *node)
+ {
++    /* Fixes: Kimi/02_代码审查报告.md #M2 (2026-09-17)
++     * 约束说明：挂起流程（OsPmSuspendPrepare/ResumePrepare）遍历 deviceList 时
++     * 不持 g_pmSpin，与运行期注销并发存在 UAF 风险。当前设计约定：
++     * 设备注册/注销只允许在系统初始化期调用，禁止在运行期（可能发生挂起之后）
++     * 注销 PM 设备。后续如需支持运行期注销，须先将遍历纳入锁保护。 */
+     LosPmCB *pm = &g_pmCB;
+ 
+     if (node == NULL) {
+@@ -358,6 +468,26 @@ VOID LOS_PmWakeSet(VOID)
      return;
  }
  
@@ -383,7 +432,7 @@ index 3c74751d..f204381c 100644
  LOS_SysSleepEnum LOS_PmModeGet(VOID)
  {
      LOS_SysSleepEnum mode;
-@@ -407,7 +529,7 @@ UINT32 LOS_PmLockCountGet(VOID)
+@@ -407,7 +537,7 @@ UINT32 LOS_PmLockCountGet(VOID)
      LosPmCB *pm = &g_pmCB;
  
      LOS_SpinLock(&g_pmSpin);
@@ -392,7 +441,7 @@ index 3c74751d..f204381c 100644
      LOS_SpinUnlock(&g_pmSpin);
  
      return (UINT32)count;
-@@ -423,7 +545,7 @@ VOID LOS_PmLockInfoShow(struct SeqBuf *m)
+@@ -423,7 +553,7 @@ VOID LOS_PmLockInfoShow(struct SeqBuf *m)
      LOS_SpinLock(&g_pmSpin);
      while (list != head) {
          lock = LOS_DL_LIST_ENTRY(list, OsPmLockCB, list);
@@ -401,7 +450,7 @@ index 3c74751d..f204381c 100644
          list = list->pstNext;
      }
      LOS_SpinUnlock(&g_pmSpin);
-@@ -431,7 +553,7 @@ VOID LOS_PmLockInfoShow(struct SeqBuf *m)
+@@ -431,7 +561,7 @@ VOID LOS_PmLockInfoShow(struct SeqBuf *m)
      return;
  }
  
@@ -410,7 +459,7 @@ index 3c74751d..f204381c 100644
  {
      INT32 len;
      errno_t err;
-@@ -445,13 +567,17 @@ UINT32 OsPmLockRequest(const CHAR *name, UINT32 swtmrID)
+@@ -445,13 +575,17 @@ UINT32 OsPmLockRequest(const CHAR *name, UINT32 swtmrID)
          return LOS_EINTR;
      }
  
@@ -429,7 +478,7 @@ index 3c74751d..f204381c 100644
          LOS_SpinUnlock(&g_pmSpin);
          return LOS_EINVAL;
      }
-@@ -480,8 +606,10 @@ UINT32 OsPmLockRequest(const CHAR *name, UINT32 swtmrID)
+@@ -480,8 +614,10 @@ UINT32 OsPmLockRequest(const CHAR *name, UINT32 swtmrID)
          }
          lock->count = 1;
          lock->swtmrID = swtmrID;
@@ -440,7 +489,7 @@ index 3c74751d..f204381c 100644
          lock->count++;
      }
  
-@@ -491,8 +619,8 @@ UINT32 OsPmLockRequest(const CHAR *name, UINT32 swtmrID)
+@@ -491,8 +627,8 @@ UINT32 OsPmLockRequest(const CHAR *name, UINT32 swtmrID)
          return LOS_EINVAL;
      }
  
@@ -451,7 +500,7 @@ index 3c74751d..f204381c 100644
          ret = LOS_OK;
      }
  
-@@ -506,7 +634,16 @@ UINT32 LOS_PmLockRequest(const CHAR *name)
+@@ -506,7 +642,16 @@ UINT32 LOS_PmLockRequest(const CHAR *name)
          return LOS_EINVAL;
      }
  
@@ -469,7 +518,7 @@ index 3c74751d..f204381c 100644
  }
  
  UINT32 LOS_PmLockRelease(const CHAR *name)
-@@ -519,6 +656,7 @@ UINT32 LOS_PmLockRelease(const CHAR *name)
+@@ -519,6 +664,7 @@ UINT32 LOS_PmLockRelease(const CHAR *name)
      OsPmLockCB *lockFree = NULL;
      BOOL isRelease = FALSE;
      UINT32 mode;
@@ -477,7 +526,7 @@ index 3c74751d..f204381c 100644
  
      if (name == NULL) {
          return LOS_EINVAL;
-@@ -529,7 +667,7 @@ UINT32 LOS_PmLockRelease(const CHAR *name)
+@@ -529,7 +675,7 @@ UINT32 LOS_PmLockRelease(const CHAR *name)
      }
  
      LOS_SpinLock(&g_pmSpin);
@@ -486,7 +535,7 @@ index 3c74751d..f204381c 100644
          LOS_SpinUnlock(&g_pmSpin);
          return LOS_EINVAL;
      }
-@@ -548,7 +686,10 @@ UINT32 LOS_PmLockRelease(const CHAR *name)
+@@ -548,7 +694,10 @@ UINT32 LOS_PmLockRelease(const CHAR *name)
      if (lock == NULL) {
          LOS_SpinUnlock(&g_pmSpin);
          return LOS_EINVAL;
@@ -498,7 +547,7 @@ index 3c74751d..f204381c 100644
          lock->count--;
          if (lock->count == 0) {
              LOS_ListDelete(&lock->list);
-@@ -556,9 +697,9 @@ UINT32 LOS_PmLockRelease(const CHAR *name)
+@@ -556,9 +705,9 @@ UINT32 LOS_PmLockRelease(const CHAR *name)
          }
      }
  
@@ -511,7 +560,7 @@ index 3c74751d..f204381c 100644
              isRelease = TRUE;
          }
          ret = LOS_OK;
-@@ -586,7 +727,7 @@ STATIC VOID OsPmSwtmrHandler(UINT32 arg)
+@@ -586,7 +735,7 @@ STATIC VOID OsPmSwtmrHandler(UINT32 arg)
      }
  }
  
@@ -520,7 +569,7 @@ index 3c74751d..f204381c 100644
  {
      UINT32 ticks;
      UINT16 swtmrID;
-@@ -607,7 +748,7 @@ UINT32 LOS_PmTimeLockRequest(const CHAR *name, UINT64 millisecond)
+@@ -607,7 +756,7 @@ UINT32 LOS_PmTimeLockRequest(const CHAR *name, UINT64 millisecond)
          return ret;
      }
  
@@ -529,7 +578,7 @@ index 3c74751d..f204381c 100644
      if (ret != LOS_OK) {
          (VOID)LOS_SwtmrDelete(swtmrID);
          return ret;
-@@ -621,20 +762,32 @@ UINT32 LOS_PmTimeLockRequest(const CHAR *name, UINT64 millisecond)
+@@ -621,20 +770,32 @@ UINT32 LOS_PmTimeLockRequest(const CHAR *name, UINT64 millisecond)
      return ret;
  }
  
@@ -567,7 +616,7 @@ index 3c74751d..f204381c 100644
  }
  
  BOOL OsIsPmMode(VOID)
-@@ -642,7 +795,7 @@ BOOL OsIsPmMode(VOID)
+@@ -642,7 +803,7 @@ BOOL OsIsPmMode(VOID)
      LosPmCB *pm = &g_pmCB;
  
      LOS_SpinLock(&g_pmSpin);
@@ -576,7 +625,7 @@ index 3c74751d..f204381c 100644
          LOS_SpinUnlock(&g_pmSpin);
          return TRUE;
      }
-@@ -680,6 +833,7 @@ UINT32 OsPmInit(VOID)
+@@ -680,6 +841,7 @@ UINT32 OsPmInit(VOID)
  
      pm->pmMode = LOS_SYS_NORMAL_SLEEP;
      LOS_ListInit(&pm->lockList);
@@ -585,10 +634,61 @@ index 3c74751d..f204381c 100644
  
      OsPmSysctrlInit();
 diff --git a/kernel/include/los_pm.h b/kernel/include/los_pm.h
-index 6bfdb3e5..f05d6c43 100644
+index 6bfdb3e5..8956d5c2 100644
 --- a/kernel/include/los_pm.h
 +++ b/kernel/include/los_pm.h
-@@ -157,6 +157,36 @@ UINT32 LOS_PmUnregister(LOS_PmNodeType type, VOID *node);
+@@ -59,16 +59,21 @@ typedef struct {
+ typedef struct {
+     /* Preparations before the CPU enters low power consumption.
+      * All modes except normal mode are invoked.
+-     * Unlocked task scheduling.
++     * Unlocked task scheduling, interrupts enabled, g_pmSpin NOT held:
++     * the callback may sleep and may call PM lock APIs.
+      */
+     UINT32 (*early)(UINT32 mode);
+     /* The system performs low-power recovery.
+      * All modes except normal mode are invoked.
+-     * Unlocked task scheduling.
++     * Unlocked task scheduling, interrupts enabled, g_pmSpin NOT held
++     * (invoked after LOS_SpinUnlockRestore + LOS_TaskUnlock since the
++     * AOV S1 fix): the callback may sleep and may call PM lock APIs.
+      */
+     VOID (*late)(UINT32 mode);
+     /* The system enters the Normal sleep mode.
+      * In normal mode, the value cannot be NULL.
++     * Runs with g_pmSpin held and interrupts disabled:
++     * must NOT sleep, MUST be a pure register-level/WFI sequence.
+      */
+     UINT32 (*normalSuspend)(VOID);
+     /* The system recovers from normal sleep.
+@@ -77,18 +82,26 @@ typedef struct {
+     VOID (*normalResume)(VOID);
+     /* The system enters the light sleep mode.
+      * In light sleep mode, the value cannot be NULL.
++     * Runs with g_pmSpin held and interrupts disabled:
++     * must NOT sleep, MUST be a pure register-level/WFI sequence.
+      */
+     UINT32 (*lightSuspend)(VOID);
+     /* The system recovers from light sleep.
+      * The value can be NULL.
++     * Runs with g_pmSpin held and interrupts disabled: must NOT sleep.
+      */
+     VOID (*lightResume)(VOID);
+     /* The system enters the deep sleep mode.
+      * In deep sleep mode, the value cannot be NULL.
++     * Runs with g_pmSpin held and interrupts disabled:
++     * must NOT sleep (no SPI/I2C transfers, no OsalMSleep), MUST be a
++     * pure register-level/WFI sequence. Time-keeping reads belong to
++     * the early/late callbacks.
+      */
+     UINT32 (*deepSuspend)(VOID);
+     /* The system recovers from deep sleep.
+      * The value can be NULL.
++     * Runs with g_pmSpin held and interrupts disabled: must NOT sleep.
+      */
+     VOID (*deepResume)(VOID);
+     /* The system enters the shutdown mode.
+@@ -157,6 +170,36 @@ UINT32 LOS_PmUnregister(LOS_PmNodeType type, VOID *node);
   */
  VOID LOS_PmWakeSet(VOID);
  
@@ -625,7 +725,7 @@ index 6bfdb3e5..f05d6c43 100644
  /**
   * @ingroup los_pm
   * @brief Get the low power mode of the current system.
-@@ -230,6 +260,32 @@ UINT32 LOS_PmLockCountGet(VOID);
+@@ -230,6 +273,32 @@ UINT32 LOS_PmLockCountGet(VOID);
   */
  UINT32 LOS_PmLockRequest(const CHAR *name);
  
@@ -658,7 +758,7 @@ index 6bfdb3e5..f05d6c43 100644
  /**
   * @ingroup los_pm
   * @brief Request to obtain the lock in current mode, so that the system will not enter
-@@ -251,6 +307,26 @@ UINT32 LOS_PmLockRequest(const CHAR *name);
+@@ -251,6 +320,26 @@ UINT32 LOS_PmLockRequest(const CHAR *name);
   */
  UINT32 LOS_PmTimeLockRequest(const CHAR *name, UINT64 millisecond);
  
@@ -814,31 +914,19 @@ index f52b73ef..7be83224 100644
  const char *const tcp_state_str[] = {
      "CLOSED",
 diff --git a/net/lwip-2.1/lwip_porting.gni b/net/lwip-2.1/lwip_porting.gni
-index 1f373670..30461e32 100644
+index 1f373670..91ad5958 100644
 --- a/net/lwip-2.1/lwip_porting.gni
 +++ b/net/lwip-2.1/lwip_porting.gni
-@@ -30,11 +30,12 @@ LWIP_PORTING_DIR = get_path_info(".", "abspath")
- 
- LWIP_PORTING_INCLUDE_DIRS = [ "$LWIP_PORTING_DIR/porting/include" ]
- 
--LWIP_PORTING_FILES = [
--  "$LWIP_PORTING_DIR/porting/src/driverif.c",
--  "$LWIP_PORTING_DIR/porting/src/sockets.c",
--  "$LWIP_PORTING_DIR/porting/src/sys_arch.c",
--  "$LWIP_PORTING_DIR/enhancement/src/api_shell.c",
--  "$LWIP_PORTING_DIR/enhancement/src/fixme.c",
--  "$LWIP_PORTING_DIR/enhancement/src/dhcps.c",
-+LWIP_PORTING_FILES = [
-+  "$LWIP_PORTING_DIR/porting/src/driverif.c",
-+  "$LWIP_PORTING_DIR/porting/src/sockets.c",
-+  "$LWIP_PORTING_DIR/porting/src/sys_arch.c",
+@@ -34,6 +34,7 @@ LWIP_PORTING_FILES = [
+   "$LWIP_PORTING_DIR/porting/src/driverif.c",
+   "$LWIP_PORTING_DIR/porting/src/sockets.c",
+   "$LWIP_PORTING_DIR/porting/src/sys_arch.c",
 +  "$LWIP_PORTING_DIR/porting/src/sntp_port.c",
-+  "$LWIP_PORTING_DIR/enhancement/src/api_shell.c",
-+  "$LWIP_PORTING_DIR/enhancement/src/fixme.c",
-+  "$LWIP_PORTING_DIR/enhancement/src/dhcps.c",
- ]
+   "$LWIP_PORTING_DIR/enhancement/src/api_shell.c",
+   "$LWIP_PORTING_DIR/enhancement/src/fixme.c",
+   "$LWIP_PORTING_DIR/enhancement/src/dhcps.c",
 diff --git a/net/lwip-2.1/porting/include/lwip/lwipopts.h b/net/lwip-2.1/porting/include/lwip/lwipopts.h
-index b3a8d316..8ead2167 100644
+index b3a8d316..369ad393 100644
 --- a/net/lwip-2.1/porting/include/lwip/lwipopts.h
 +++ b/net/lwip-2.1/porting/include/lwip/lwipopts.h
 @@ -192,7 +192,7 @@
@@ -855,7 +943,7 @@ index b3a8d316..8ead2167 100644
  #define LWIP_ENABLE_CAP_NET_BROADCAST   0
  
 +/* AOV PoC T4: SNTP 对时（激活 ntpdate shell 命令与 lwip_sntp_start 真实实现）。
-+ * 校时回调 LwipSntpSetSystemTime 实现于 enhancement/src/fixme.c：
++ * 校时回调 LwipSntpSetSystemTime 实现于 porting/src/sntp_port.c：
 + * settimeofday + 弱引用回写 RTC（Hi35xxRtcWriteSysTime，rtc_hi35xx.c 提供）。 */
 +#define LWIP_SNTP                       1
 +#define SNTP_SERVER_DNS                 1
@@ -867,10 +955,10 @@ index b3a8d316..8ead2167 100644
  #endif /* _LWIP_PORTING_LWIPOPTS_H_ */
 diff --git a/net/lwip-2.1/porting/src/sntp_port.c b/net/lwip-2.1/porting/src/sntp_port.c
 new file mode 100644
-index 00000000..3b8620a0
+index 00000000..12e1f7be
 --- /dev/null
 +++ b/net/lwip-2.1/porting/src/sntp_port.c
-@@ -0,0 +1,145 @@
+@@ -0,0 +1,147 @@
 +/*
 + * Copyright (c) 2026 HiSilicon (Shanghai) Technologies CO., LIMITED.
 + * Licensed under the Apache License, Version 2.0 (the "License");
@@ -889,11 +977,10 @@ index 00000000..3b8620a0
 +/*
 + * AOV PoC T4：SNTP 移植层（时间连续性方案的网络对时半边）。
 + *
-+ * 背景：内核 lwip 实际经 Makefile 构建，LOCAL_SRCS 仅含 porting/src 目录通配与
-+ * lwip 官方源（LWIPNOAPPSFILES）——enhancement/src（fixme.c/api_shell.c）
-+ * 不参与编译，故基线镜像中 lwip_sntp_start 空桩与 ntpdate 命令均不存在
-+ * （阶段2 "NTP 链路断" 的构建级根因）。本文件位于 porting/src/（wildcard
-+ * 自动编入），自包含提供：
++ * 背景：基线镜像中 lwip_sntp_start 为空桩（fixme.c 提供）且 ntpdate 命令
++ * 依赖 api_shell.c 注册——二者均属 enhancement/src，链接时存在断链问题
++ * （阶段2 "NTP 链路断" 的构建级根因）。本文件位于 porting/src/（Makefile
++ * 与 GN 双路径均自动编入），自包含提供：
 + *   - lwip_sntp_start()：启动 SNTP 并同步等待首次校时（供产品代码/shell 调用）
 + *   - LwipSntpSetSystemTime()：SNTP_SET_SYSTEM_TIME 宏回调（lwipopts.h 定义），
 + *     settimeofday + 弱引用回写 RTC（Hi35xxRtcWriteSysTime，rtc_hi35xx.c 提供）
@@ -928,6 +1015,11 @@ index 00000000..3b8620a0
 + * 且 SNTP_UPDATE_DELAY 周期校时会再次解引用服务器名，必须静态持久化 */
 +static char g_sntpServerNames[SNTP_MAX_SERVERS][LWIP_SNTP_NAME_LEN];
 +
++/* Fixes: Kimi/02_代码审查报告.md #S3 (2026-09-17)
++ * 校时完成标志：仅当真实收到 NTP 应答并由 SNTP_SET_SYSTEM_TIME 宏回调
++ * 写入系统时间后置位。原实现以 tv_sec 自然递增判定，无应答也会假成功。 */
++static volatile unsigned int g_sntpSynced = 0;
++
 +void LwipSntpSetSystemTime(unsigned int sec)
 +{
 +    struct timeval tv;
@@ -939,6 +1031,7 @@ index 00000000..3b8620a0
 +    if (Hi35xxRtcWriteSysTime != NULL) {
 +        (void)Hi35xxRtcWriteSysTime(); /* 校时后回写 RTC，掉电重启不丢时间 */
 +    }
++    g_sntpSynced = 1;
 +}
 +
 +int lwip_sntp_start(int server_num, char **sntp_server, struct timeval *time)
@@ -946,14 +1039,12 @@ index 00000000..3b8620a0
 +    int i;
 +    int synced = -1;
 +    unsigned int waited = 0;
-+    struct timeval t0;
-+    struct timeval t1 = {0};
 +
 +    if ((server_num <= 0) || (sntp_server == NULL) || (time == NULL)) {
 +        return -1;
 +    }
 +
-+    (void)gettimeofday(&t0, NULL);
++    g_sntpSynced = 0;
 +
 +    sntp_stop();
 +    sntp_setoperatingmode(SNTP_OPMODE_POLL);
@@ -964,12 +1055,11 @@ index 00000000..3b8620a0
 +    }
 +    sntp_init();
 +
-+    /* 轮询等待首次校时完成（SNTP 响应在 tcpip 上下文处理并回调宏） */
++    /* 轮询等待首次校时完成（SNTP 响应在 tcpip 上下文处理并回调宏置位） */
 +    while (waited < LWIP_SNTP_SYNC_TIMEOUT_MS) {
 +        LOS_TaskDelay(LWIP_SNTP_POLL_INTERVAL_MS);
 +        waited += LWIP_SNTP_POLL_INTERVAL_MS;
-+        (void)gettimeofday(&t1, NULL);
-+        if (t1.tv_sec != t0.tv_sec) {
++        if (g_sntpSynced != 0) {
 +            synced = 0; /* PoC 简化：不区分应答服务器序号，恒报首个 */
 +            break;
 +        }
