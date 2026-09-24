@@ -1,0 +1,36 @@
+Study/五大RTOS_E2E各节点工具汇总.md
+  s_f942eee6352cdb::t_1c084c3bc98d0d 1-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "63a6f1854d817c850cb8060bcaae9f4b14783c47",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_f942eee6352cdb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f2e81bb47ffe4g1Hf4hCvTYEs7",
+        "model": "kimi-k3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 124,
+      "total_deletions": 0,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_1c084c3bc98d0d": "kimi-k3"
+      },
+      "model_totals": {
+        "kimi-k3": {
+          "additions": 124,
+          "deletions": 0
+        }
+      }
+    }
+  }
+}
