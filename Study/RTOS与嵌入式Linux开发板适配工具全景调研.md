@@ -11,17 +11,17 @@
 
 ## 1. 总览：RTOS 与 Linux 适配的本质差异
 
-| 维度 | RTOS（FreeRTOS / Zephyr / RT-Thread / ThreadX…） | 嵌入式 Linux（Yocto / Buildroot / 厂商 BSP） |
-|---|---|---|
-| 典型目标 | MCU（Cortex-M/R、RISC-V、Xtensa 等） | MPU/AP（Cortex-A、RISC-V 应用核等） |
-| 适配核心工作 | BSP/驱动移植、板级配置、RTOS 配置裁剪 | BSP 层集成（Bootloader + 内核 + rootfs + 设备树） |
-| 构建系统 | CMake / Kconfig / SCons / 厂商 IDE | Yocto+BitBake、Buildroot、厂商 SDK |
-| 配置描述 | Kconfig + devicetree + 板级头文件 | 内核 defconfig + Device Tree（DTS/DTB）+ Yocto 配方 |
-| 调试主通道 | SWD/JTAG + GDB + RTOS-aware + RTT/SWO | 串口 console + GDB/KGDB + JTAG + ftrace |
-| 典型 Trace/调优 | SystemView、Tracealyzer、SWO/ETM | ftrace、perf、eBPF、LTTng、Trace Compass |
-| 测试 | Unity/CMock/Ceedling、Zephyr Twister、HIL | LTP、kselftest、LAVA、KernelCI、ptest |
-| OTA/维护 | MCUboot、Zephyr DFU、厂商 bootloader | SWUpdate、RAUC、Mender、OSTree、A/B 分区 |
-| 通用工具 | **调试探针、协议分析仪、功耗仪、仿真器、CI、设备管理平台** 两条路线大量共用 | 同左 |
+| 维度          | RTOS（FreeRTOS / Zephyr / RT-Thread / ThreadX…） | 嵌入式 Linux（Yocto / Buildroot / 厂商 BSP）         |
+| ----------- | ---------------------------------------------- | --------------------------------------------- |
+| 典型目标        | MCU（Cortex-M/R、RISC-V、Xtensa 等）                | MPU/AP（Cortex-A、RISC-V 应用核等）                  |
+| 适配核心工作      | BSP/驱动移植、板级配置、RTOS 配置裁剪                        | BSP 层集成（Bootloader + 内核 + rootfs + 设备树）       |
+| 构建系统        | CMake / Kconfig / SCons / 厂商 IDE               | Yocto+BitBake、Buildroot、厂商 SDK                |
+| 配置描述        | Kconfig + devicetree + 板级头文件                   | 内核 defconfig + Device Tree（DTS/DTB）+ Yocto 配方 |
+| 调试主通道       | SWD/JTAG + GDB + RTOS-aware + RTT/SWO          | 串口 console + GDB/KGDB + JTAG + ftrace         |
+| 典型 Trace/调优 | SystemView、Tracealyzer、SWO/ETM                 | ftrace、perf、eBPF、LTTng、Trace Compass          |
+| 测试          | Unity/CMock/Ceedling、Zephyr Twister、HIL        | LTP、kselftest、LAVA、KernelCI、ptest             |
+| OTA/维护      | MCUboot、Zephyr DFU、厂商 bootloader               | SWUpdate、RAUC、Mender、OSTree、A/B 分区            |
+| 通用工具        | **调试探针、协议分析仪、功耗仪、仿真器、CI、设备管理平台** 两条路线大量共用      | 同左                                            |
 
 **一句话结论**：RTOS 与 Linux 的**工具链上游差异大（构建 / 配置 / BSP）**，但**下游高度趋同（调试探针、Trace、功耗、测试自动化、OTA/设备管理）**——跨生态通用工具是团队能力复用的重点。
 
