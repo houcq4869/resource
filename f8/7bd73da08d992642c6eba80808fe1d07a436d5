@@ -1,0 +1,36 @@
+Study/E2E各阶段适配工具与能力本质分析.md
+  s_f942eee6352cdb::t_f41f861e7fbd07 1-442
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "f87bd73da08d992642c6eba80808fe1d07a436d5",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_f942eee6352cdb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f2e81bb47ffe4g1Hf4hCvTYEs7",
+        "model": "kimi-k3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 442,
+      "total_deletions": 0,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_f41f861e7fbd07": "kimi-k3"
+      },
+      "model_totals": {
+        "kimi-k3": {
+          "additions": 442,
+          "deletions": 0
+        }
+      }
+    }
+  }
+}
