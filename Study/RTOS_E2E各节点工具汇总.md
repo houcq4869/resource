@@ -67,17 +67,15 @@
 
 | 节点环节 | 工具 | 作用（本质） |
 |---|---|---|
-| 选型评估 | `open-vela/manifests`（`openvela.xml`）+ `repo init/sync`；docs 的 *Development_Board* / *Certified_Board* / *chip_porting/porting_guide* | 官方支持矩阵（vendor/chip/board + 预编译工具链）；已适配板卡与 XTS 认证清单；三层适配模型（Architecture/Chip-SoC/Board）判断是否需自研 BSP |
-| 工程配置与代码生成 | `vendor_template`（chips/boards 骨架）；Kconfig 体系（Kconfig/defconfig/.config/config.h）；`kconfig-frontends`；`./build.sh <board>:<config> menuconfig`；`make savedefconfig`；`genromfs`+`xxd`（mkromfs.sh） | 新平台 BSP 模板；板级配置的图形/命令行裁剪与可复现（反向生成 defconfig）；生成 `/etc` ROMFS 镜像 |
-| 编译构建 | `./build.sh <board>:<config> [-jN]`；`./build.sh <cfg> --cmake`；`tools/configure.sh`；NuttX Makefile（`tools/Unix.mk`）；预编译工具链（arm-none-eabi / aarch64-none-elf / riscv-none-elf / xtensa-esp32s3-elf / tricore-elf）；ccache / bear；产物 `nuttx`/`nuttx.bin`/`.hex`/`.srec`/`System.map` | 顶层编译入口（configure + make + savedefconfig）；可切 CMake+Ninja；板级配置脚本；交叉工具链；增量加速与 `compile_commands.json` |
-| 烧录下载 | `make flash` + `esptool`（ESP32-S3）；`STM32CubeProgrammer`（ST）；`JLinkExe` + `loadfile`（J-Link）；`AURIXFlasher.exe`（英飞凌 TC4x）；`minicom` 串口验证 | 按平台用 `make flash` 或厂商下载器写 Flash；串口确认启动（**注：`build.sh flash` 不存在，待核实**） |
-| 在线调试 | `gdb-multiarch` / `arm-none-eabi-gdb`；Vela Emulator（`emulator.sh vela -qemu -S -s`）；VSCode `launch.json`/CLion；`JLinkGDBServer` + `jlink-nuttx.so`；**GDB Plugin**（`pynuttx/gdbinit.py`：`info nxthreads`、`memdump/memleak/kasan`、`rpmsgdump`、`uorb`、`deadlock`、`note`、`nxgcore`）；GDB Stub（`CONFIG_LIB_GDBSTUB`）；TRACE32（TERM/FDX）；`addr2line`/`nm`→`System.map` | 跨架构 GDB、模拟器 gdbstub、IDE 图形调试、J-Link 线程感知、系统语义级插件（看线程/内存/泄漏/死锁）、无探针串口调试、地址反解 |
-| 跟踪与性能调优 | `trace start`/`trace dump`（`CONFIG_SYSTEM_TRACE`，基于 `sched_note`）→ Perfetto；`sched_note_*`/ATRACE 埋点；`-finstrument-functions`；Note 后端（RAM/Syslog/RTT/SysView/RPMsg/ITM）；SEGGER SystemView（`CONFIG_SEGGER_SYSVIEW`）；`traceparse.py`→Perfetto；`perf`（PMU，`perf record` + `perfaddmmap.py` + FlameGraph）；`gprof`；`cpuload`/`top`/`ps`；`critmon`；`irqinfo`；`showinfo`；CoreMark/Dhrystone 等基准 | 内核打点与可视化（Perfetto/SystemView）；函数级热点与火焰图；CPU/临界区/中断/资源监控；硬件性能基线量化 |
-| 测试验证 | `open-vela/tests`（testcases/testsuites）；**CMocka**（`CONFIG_TESTING_CMOCKA`）；`cmocka_driver_block`（驱动测试）；`fstest`/`memstress`；tests 的 `scripts/`（pytest+pexpect+minicom）；XTS 精简用例集；集成 Unity/libc-test/ltp 等；Allsyms+backtrace | 官方用例集与单元/集成/压力测试；自动化脚本化真板测试与报告；厂商准入 XTS 标准；失败后符号化定位 |
-| 自动化 CI | `open-vela/public-actions`（`checkpatch.yml`/`cla.yml`/`ci.yml`/`docs.yml`/`stale.yml`）；水印/中文检测；`tests/cibuild.sh`；`nxstyle`/`cmake-format`/`config_check` | 可复用 GitHub Actions 统一门禁；CI 构建依赖准备；风格/配置检查 |
-| 维护与 OTA | `frameworks/system/ota`（`bootctl`，A/B 分区）；`gen_ota_zip.py`（全包/差分 `--sign`）；`ddelta`（差分算法）；`otaUI`；`avb_verify`/`zip_verify` + `avb_sign.sh`；Ymodem/Zmodem、`adb push`、`curl`；`crashlog`/`coredump`/`nxgcore`/`resetcause`/`dmesg`/ramlog | A/B 升级与回滚；全量/差分 OTA 包生成与签名；AVB 校验；升级包投递；Crash 日志与 coredump 维护 |
-
-> **OpenVela 异构/多核补充**：Rptun / RPMsg / VirtIO / OpenAMP（`rptun start|stop /dev/rptun/<cpuname>`）；多核镜像 `cmake_out/<board>_coreN`；`CONFIG_DRIVERS_NOTE_CPUID` 区分核。Linux/Android 侧 RPC（`vela-linux`）**待核实**。
+| 选型评估 | `repo` + manifests（`openvela.xml`）；官方板卡 / XTS 认证清单 | 多仓拉取源码与预编译工具链；查已适配板卡与认证，判断是否需自研 BSP |
+| 工程配置与代码生成 | Kconfig（`menuconfig`）；`vendor_template` BSP 模板 | 板级配置裁剪与可复现；快速起芯片/板级移植骨架 |
+| 编译构建 | **`./build.sh`**（Make，可切 `--cmake`）；预编译工具链（arm / riscv / xtensa / tricore） | 顶层编译入口；交叉工具链，产物 `nuttx.bin` 等 |
+| 烧录下载 | `make flash` + `esptool`（ESP）；或厂商下载器（STM32CubeProgrammer / JLinkExe / AURIXFlasher） | 按平台写 Flash，串口验证启动 |
+| 在线调试 | GDB + **`pynuttx` GDB 插件**；`JLinkGDBServer`；Vela Emulator（QEMU） | 系统级调试（线程/内存/泄漏/死锁）；模拟器免硬件调试 |
+| 跟踪与性能调优 | `trace`（sched_note）→ Perfetto；`perf` / `gprof`；`critmon` / `irqinfo`；SystemView | 内核事件时间线；函数热点火焰图；CPU/中断/临界区监控 |
+| 测试验证 | `open-vela/tests` + **CMocka**；XTS 精简用例集 | 官方用例与单元/集成测试；厂商准入标准 |
+| 自动化 CI | `public-actions`（checkpatch / ci / docs） | 可复用 GitHub Actions 统一门禁 |
+| 维护与 OTA | `bootctl`（A/B 分区）；`gen_ota_zip.py` + AVB | A/B 升级回滚；全量/差分包生成与签名校验 |
 
 ---
 
