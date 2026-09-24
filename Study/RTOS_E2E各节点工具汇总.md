@@ -1,25 +1,17 @@
-# 五大 RTOS 的 E2E 各节点适配工具与作用汇总
-
-> **覆盖对象**：**FreeRTOS、RT-Thread、Zephyr、ThreadX、OpenVela** 五类 RTOS。
-> **节点口径**（用文字表述）：选型评估 → 工程配置与代码生成 → 编译构建 → 烧录下载 → 在线调试 → 跟踪与性能调优 → 测试验证 → 自动化 CI → 维护与 OTA。
-> **来源**：各项目 / 厂商官方文档与官方仓库，2026-09 联网调研（web-access skill）。无法从一手来源确认者标「**待核实**」。
-> **说明**：OpenVela 基于 Apache NuttX，其工具链与 NuttX 高度同源；表中"作用"一列点出该工具的**本质用途**。
-
----
 
 ## 一、FreeRTOS
 
-| 节点环节 | 工具 | 作用（本质） |
-|---|---|---|
-| 选型评估 | FreeRTOS *Supported Devices*（内核 port 列表，覆盖 40+ 架构）；FreeRTOS LTS 版本 | 判断目标 MCU 是否已有 port（移植起点），并确认长期维护版本 |
-| 工程配置与代码生成 | `FreeRTOSConfig.h`（宏裁剪内核）；无官方图形配置器，通常借 STM32CubeMX / MCUXpresso Config Tools 勾选 FreeRTOS 生成工程 | 用编译期宏定义内核行为、任务/堆/时钟参数；图形工具负责引脚/时钟并"捎带"生成 RTOS 工程骨架 |
-| 编译构建 | 交叉 GCC（Arm GNU Toolchain）/ 原厂 IDE / CMake | 编译内核与应用，产出**单一固件镜像** |
-| 烧录下载 | 无专属工具：借调试探针（J-Link/OpenOCD）或原厂烧录器 | 把镜像写入 Flash |
-| 在线调试 | 内核感知调试插件（Eclipse / IAR / Keil / Ozone / GHS） | 查看任务列表、状态、栈、队列（RTOS 感知） |
-| 跟踪与性能调优 | `vTaskGetRunTimeStats` / `uxTaskGetStackHighWaterMark`；Percepio Tracealyzer（含 FreeRTOS 免费版）；SEGGER SystemView；CMSIS Event Recorder | CPU 占用与栈高水位统计；任务/中断事件时间线可视化 |
-| 测试验证 | FreeRTOS-Kernel 官方内核回归；Unity + CMock + Ceedling；CBMC | 目标侧单元测试 + 内核形式化验证 |
-| 自动化 CI | GitHub Actions（官方仓库）；CBMC / Coverity | 内核/port 组合构建与验证回归 |
-| 维护与 OTA | **AWS IoT OTA**（ota-for-aws-iot-embedded-sdk）；AWS IoT Device Defender；原厂 bootloader | 云下发固件升级 + 设备安全态势监控 |
+| 节点环节      | 工具                                                                                                                                 | 作用（本质）                                             |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 选型评估      | FreeRTOS *Supported Devices*（内核 port 列表，覆盖 40+ 架构）；FreeRTOS LTS 版本                                                                 | 判断目标 MCU 是否已有 port（移植起点），并确认长期维护版本                 |
+| 工程配置与代码生成 | `FreeRTOSConfig.h`（宏裁剪内核）；无官方图形配置器，通常借 STM32CubeMX / MCUXpresso Config Tools 勾选 FreeRTOS 生成工程                                      | 用编译期宏定义内核行为、任务/堆/时钟参数；图形工具负责引脚/时钟并"捎带"生成 RTOS 工程骨架 |
+| 编译构建      | 交叉 GCC（Arm GNU Toolchain）/ 原厂 IDE / CMake                                                                                          | 编译内核与应用，产出**单一固件镜像**                               |
+| 烧录下载      | 无专属工具：借调试探针（J-Link/OpenOCD）或原厂烧录器                                                                                                  | 把镜像写入 Flash                                        |
+| 在线调试      | 内核感知调试插件（Eclipse / IAR / Keil / Ozone / GHS）                                                                                       | 查看任务列表、状态、栈、队列（RTOS 感知）                            |
+| 跟踪与性能调优   | `vTaskGetRunTimeStats` / `uxTaskGetStackHighWaterMark`；Percepio Tracealyzer（含 FreeRTOS 免费版）；SEGGER SystemView；CMSIS Event Recorder | CPU 占用与栈高水位统计；任务/中断事件时间线可视化                        |
+| 测试验证      | FreeRTOS-Kernel 官方内核回归；Unity + CMock + Ceedling；CBMC                                                                               | 目标侧单元测试 + 内核形式化验证                                  |
+| 自动化 CI    | GitHub Actions（官方仓库）；CBMC / Coverity                                                                                               | 内核/port 组合构建与验证回归                                  |
+| 维护与 OTA   | **AWS IoT OTA**（ota-for-aws-iot-embedded-sdk）；AWS IoT Device Defender；原厂 bootloader                                                | 云下发固件升级 + 设备安全态势监控                                 |
 
 ---
 
@@ -41,17 +33,17 @@
 
 ## 三、Zephyr
 
-| 节点环节 | 工具 | 作用（本质） |
-|---|---|---|
-| 选型评估 | `west boards` / *Supported Boards* | 枚举上游已验证的 SoC/板卡，判断是否"已支持" |
+| 节点环节      | 工具                                                                                                               | 作用（本质）                                                 |
+| --------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| 选型评估      | `west boards` / *Supported Boards*                                                                               | 枚举上游已验证的 SoC/板卡，判断是否"已支持"                              |
 | 工程配置与代码生成 | **Kconfig**（menuconfig/guiconfig）+ **Devicetree**（DTS + bindings + dtc）+ `west manifest`（west.yml）+ **sysbuild** | 依赖求解式功能裁剪；硬件拓扑解耦为设备树；多仓库版本锁定；统一构建 App+MCUboot+TF-M 多镜像 |
-| 编译构建 | **`west build`** + CMake + Ninja + **Zephyr SDK（sdk-ng）** | 多架构工具链 + 元构建 + 快速执行 |
-| 烧录下载 | **`west flash`**（+ runners）；`west sign` + imgtool | 抽象多探针的统一烧录入口；生成签名镜像 |
-| 在线调试 | **`west debug`** + GDB + OpenOCD / pyOCD / J-Link | 源码级调试 |
-| 跟踪与性能调优 | Zephyr tracing（**CTF**）；`ram_report` / `rom_report`；Thread Analyzer；SystemView / Tracealyzer | 跟踪子系统；静态段/符号占用分析；线程栈与 CPU 占用 |
-| 测试验证 | **Twister**（`west twister`）+ **ztest**；pytest / Robot / shell harness；babbleSim；QEMU / native_sim | 扫描/构建/运行测试矩阵；目标侧单测；RF 链路级仿真 |
-| 自动化 CI | GitHub Actions + Twister in CI + Zephyr Docker 镜像 | 全量板卡/配置测试矩阵 + 可复现构建环境 |
-| 维护与 OTA | **MCUboot + imgtool**；**mcumgr**；TF-M | 安全 bootloader + A/B 回滚；SMP over BLE/UART/UDP 升级；安全世界隔离 |
+| 编译构建      | **`west build`** + CMake + Ninja + **Zephyr SDK（sdk-ng）**                                                        | 多架构工具链 + 元构建 + 快速执行                                    |
+| 烧录下载      | **`west flash`**（+ runners）；`west sign` + imgtool                                                                | 抽象多探针的统一烧录入口；生成签名镜像                                    |
+| 在线调试      | **`west debug`** + GDB + OpenOCD / pyOCD / J-Link                                                                | 源码级调试                                                  |
+| 跟踪与性能调优   | Zephyr tracing（**CTF**）；`ram_report` / `rom_report`；Thread Analyzer；SystemView / Tracealyzer                     | 跟踪子系统；静态段/符号占用分析；线程栈与 CPU 占用                           |
+| 测试验证      | **Twister**（`west twister`）+ **ztest**；pytest / Robot / shell harness；babbleSim；QEMU / native_sim                | 扫描/构建/运行测试矩阵；目标侧单测；RF 链路级仿真                            |
+| 自动化 CI    | GitHub Actions + Twister in CI + Zephyr Docker 镜像                                                                | 全量板卡/配置测试矩阵 + 可复现构建环境                                  |
+| 维护与 OTA   | **MCUboot + imgtool**；**mcumgr**；TF-M                                                                            | 安全 bootloader + A/B 回滚；SMP over BLE/UART/UDP 升级；安全世界隔离 |
 
 ---
 
@@ -91,17 +83,17 @@
 
 ## 六、横向速览（同节点，五类 RTOS 的代表工具）
 
-| 节点环节 | FreeRTOS | RT-Thread | Zephyr | ThreadX | OpenVela |
-|---|---|---|---|---|---|
-| 选型评估 | Supported Devices + LTS | BSP 列表 + 软件包平台 | `west boards` | ports + 中间件套件 | manifests + 板卡/XTS 清单 |
-| 工程配置与代码生成 | `FreeRTOSConfig.h`（借 CubeMX） | Env / RT-Thread Studio | Kconfig + Devicetree + west manifest | `tx_user.h` + 端口函数 | Kconfig + vendor_template |
-| 编译构建 | 交叉 GCC / 原厂 IDE | SCons | `west build` + Zephyr SDK | CMake / 原厂 SDK | `./build.sh`（Make/CMake） |
-| 烧录下载 | 探针 / 原厂烧录器 | Studio / 原厂工具 | `west flash` + imgtool | 探针 / 原厂工具 | `make flash` / 厂商下载器 |
-| 在线调试 | RTOS-aware 插件 | Studio GDB | `west debug` + GDB | 原厂 IDE + 感知 | GDB + pynuttx 插件 / J-Link |
-| 跟踪与性能调优 | 运行统计 / Tracealyzer / SystemView | ulog / SystemView | CTF tracing / ram·rom_report | TraceX | `trace`/`perf`/`gprof`/critmon/SystemView |
-| 测试验证 | 官方内核回归 / Unity | utest | Twister + ztest | 通用框架 | tests + CMocka + XTS |
-| 自动化 CI | GitHub Actions | 通用 CI | GitHub Actions + Twister | 通用 CI | public-actions |
-| 维护与 OTA | AWS IoT OTA | ota_downloader 等 | MCUboot + mcumgr | 原厂 bootloader | bootctl A/B + gen_ota_zip + AVB |
+| 节点环节      | FreeRTOS                        | RT-Thread              | Zephyr                               | ThreadX            | OpenVela                                  |
+| --------- | ------------------------------- | ---------------------- | ------------------------------------ | ------------------ | ----------------------------------------- |
+| 选型评估      | Supported Devices + LTS         | BSP 列表 + 软件包平台         | `west boards`                        | ports + 中间件套件      | manifests + 板卡/XTS 清单                     |
+| 工程配置与代码生成 | `FreeRTOSConfig.h`（借 CubeMX）    | Env / RT-Thread Studio | Kconfig + Devicetree + west manifest | `tx_user.h` + 端口函数 | Kconfig + vendor_template                 |
+| 编译构建      | 交叉 GCC / 原厂 IDE                 | SCons                  | `west build` + Zephyr SDK            | CMake / 原厂 SDK     | `./build.sh`（Make/CMake）                  |
+| 烧录下载      | 探针 / 原厂烧录器                      | Studio / 原厂工具          | `west flash` + imgtool               | 探针 / 原厂工具          | `make flash` / 厂商下载器                      |
+| 在线调试      | RTOS-aware 插件                   | Studio GDB             | `west debug` + GDB                   | 原厂 IDE + 感知        | GDB + pynuttx 插件 / J-Link                 |
+| 跟踪与性能调优   | 运行统计 / Tracealyzer / SystemView | ulog / SystemView      | CTF tracing / ram·rom_report         | TraceX             | `trace`/`perf`/`gprof`/critmon/SystemView |
+| 测试验证      | 官方内核回归 / Unity                  | utest                  | Twister + ztest                      | 通用框架               | tests + CMocka + XTS                      |
+| 自动化 CI    | GitHub Actions                  | 通用 CI                  | GitHub Actions + Twister             | 通用 CI              | public-actions                            |
+| 维护与 OTA   | AWS IoT OTA                     | ota_downloader 等       | MCUboot + mcumgr                     | 原厂 bootloader      | bootctl A/B + gen_ota_zip + AVB           |
 
 **一句话结论**：**上游（配置/构建/烧录）各家"配置哲学"差异最大**——FreeRTOS 靠宏、Zephyr 靠 Kconfig+DT、OpenVela 靠 repo+Kconfig+build.sh；**下游（调试/Trace/测试/CI/OTA）快速趋同**，都收敛到"探针 + GDB + 事件跟踪 + 单元/pytest + GitHub Actions + A/B OTA"这一通用范式。
 
