@@ -1,0 +1,62 @@
+Study/LiteOS_E2E工具链对比与得失分析.md
+  s_524663908038a2::t_1a8a6e9f1f79f3 253
+  s_524663908038a2::t_62e68dae36c618 434
+  s_524663908038a2::t_5a916661829059 113
+  s_524663908038a2::t_7fc75732883899 249
+  s_524663908038a2::t_cfa47a3841995d 279
+  s_524663908038a2::t_72e53091f99425 322-323
+  s_524663908038a2::t_ea46870b3fcc4a 449
+  s_524663908038a2::t_25457036c3c7a1 451
+  s_524663908038a2::t_90eecf36322c71 202
+  s_524663908038a2::t_7485999488adbd 246-247
+  s_524663908038a2::t_a0422e95cc33b5 15-16
+  s_524663908038a2::t_a1378496490456 465-476
+  s_524663908038a2::t_8e9371c7a0842e 45
+  s_524663908038a2::t_941b1a072623cf 5,7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "0ddb736e7161b3b179c5669587127b0eaf26f4e1",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_524663908038a2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f194090a7ffe8pPJbQC1qB55U0",
+        "model": "zhipu/glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 29,
+      "total_deletions": 18,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_1a8a6e9f1f79f3": "zhipu/glm-5.3",
+        "t_25457036c3c7a1": "zhipu/glm-5.3",
+        "t_5a916661829059": "zhipu/glm-5.3",
+        "t_62e68dae36c618": "zhipu/glm-5.3",
+        "t_72e53091f99425": "zhipu/glm-5.3",
+        "t_7485999488adbd": "zhipu/glm-5.3",
+        "t_7fc75732883899": "zhipu/glm-5.3",
+        "t_8e9371c7a0842e": "zhipu/glm-5.3",
+        "t_90eecf36322c71": "zhipu/glm-5.3",
+        "t_941b1a072623cf": "zhipu/glm-5.3",
+        "t_a0422e95cc33b5": "zhipu/glm-5.3",
+        "t_a1378496490456": "zhipu/glm-5.3",
+        "t_cfa47a3841995d": "zhipu/glm-5.3",
+        "t_ea46870b3fcc4a": "zhipu/glm-5.3"
+      },
+      "model_totals": {
+        "zhipu/glm-5.3": {
+          "additions": 29,
+          "deletions": 18
+        }
+      }
+    }
+  }
+}
