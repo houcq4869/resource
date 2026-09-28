@@ -330,23 +330,23 @@
 
 ### 6.2 能力补齐总清单（缺口 → 补齐项 → 对标 → 优先级）
 
-| # | 缺口（证据锚点） | 补齐项 | 对标验证 | 优先级 | 投入量级 |
-|---|---|---|---|---|---|
-| A1 | Linux 宿主强依赖（§2③） | **Windows 原生构建链**（LiteOS-M 先行） | Zephyr winget / RT-Thread Env | **P0** | 中 |
-| A2 | 工具链分发重、70G 源码（§2③） | **最小源码集 + 一体化安装包** | RT-Thread Env 自带链 | **P0** | 中 |
-| A3 | 无 IDE 工程导出（§2②） | **`hb export --target=keil/iar/vscode`** | RT-Thread `scons --target` 全套 | **P0** | 中 |
-| A4 | 调试自认不可用（§2⑤） | **debug 构建带 -g + 真机 GDB 文档** | 各竞品默认行为 | **P0** | 小 |
-| A5 | RTOS 感知零支持（§2⑤） | **OpenOCD 上游 LiteOS rtos helper** | NuttX/Zephyr/FreeRTOS 均在主线 | **P0** | 小 |
-| A6 | 无 CLI 烧录、CI 断链（§2④） | **`hb burn`（runner 抽象多后端）** | Zephyr `west flash` runners | **P0** | 中 |
-| B1 | 观测无出口（§2⑥） | **trace/perf → CTF/Perfetto 转换器** | OpenVela traceparse.py 已验证 | **P1** | 小 |
-| B2 | LMS 结果无结构化呈现（§2⑥） | **LMS JSON 报告 + CI 集成** | sanitizer 生态惯例 | P1 | 小 |
-| B3 | 测试无编排（§2⑦） | **qemu + xts 编排器（JUnit 报告）** | Zephyr Twister | **P1** | 中 |
-| B4 | QEMU+XTS 官方流程缺失（§2⑦） | **补文档 + qemu demo 产品开 xts** | — | P1 | 小 |
-| B5 | CI 不可复现（§2⑧） | **官方 Docker 镜像 + 仓库内流水线定义** | Zephyr Docker | P1 | 小 |
-| C1 | OTA 代差（§2⑨） | **MCUboot 移植（-M）/ 参考 bootctl+AVB（-A）** | Zephyr/RT-Thread 社区实践 | **P1/P2** | 大 |
-| C2 | 无支持芯片总表（§2①） | **总表自动生成 + 认证查询入口** | FreeRTOS Supported Devices | P2 | 小 |
-| C3 | 迁移通道未放大（§2①） | **FreeRTOS→CMSIS-RTOS2 迁移指南/检查器** | — | P2 | 小 |
-| C4 | 中间件断代（§4.2-8） | **关键包 LwIP/mbedtls 等纳入 hpm 或 manifest 精选集** | RT-Thread 精选包 | P2 | 中 |
+| #   | 缺口（证据锚点）             | 补齐项                                         | 对标验证                          | 优先级       | 投入量级 |
+| --- | -------------------- | ------------------------------------------- | ----------------------------- | --------- | ---- |
+| A1  | Linux 宿主强依赖（§2③）     | **Windows 原生构建链**（LiteOS-M 先行）              | Zephyr winget / RT-Thread Env | **P0**    | 中    |
+| A2  | 工具链分发重、70G 源码（§2③）   | **最小源码集 + 一体化安装包**                          | RT-Thread Env 自带链             | **P0**    | 中    |
+| A3  | 无 IDE 工程导出（§2②）      | **`hb export --target=keil/iar/vscode`**    | RT-Thread `scons --target` 全套 | **P0**    | 中    |
+| A4  | 调试自认不可用（§2⑤）         | **debug 构建带 -g + 真机 GDB 文档**                | 各竞品默认行为                       | **P0**    | 小    |
+| A5  | RTOS 感知零支持（§2⑤）      | **OpenOCD 上游 LiteOS rtos helper**           | NuttX/Zephyr/FreeRTOS 均在主线    | **P0**    | 小    |
+| A6  | 无 CLI 烧录、CI 断链（§2④）  | **`hb burn`（runner 抽象多后端）**                 | Zephyr `west flash` runners   | **P0**    | 中    |
+| B1  | 观测无出口（§2⑥）           | **trace/perf → CTF/Perfetto 转换器**           | OpenVela traceparse.py 已验证    | **P1**    | 小    |
+| B2  | LMS 结果无结构化呈现（§2⑥）    | **LMS JSON 报告 + CI 集成**                     | sanitizer 生态惯例                | P1        | 小    |
+| B3  | 测试无编排（§2⑦）           | **qemu + xts 编排器（JUnit 报告）**                | Zephyr Twister                | **P1**    | 中    |
+| B4  | QEMU+XTS 官方流程缺失（§2⑦） | **补文档 + qemu demo 产品开 xts**                 | —                             | P1        | 小    |
+| B5  | CI 不可复现（§2⑧）         | **官方 Docker 镜像 + 仓库内流水线定义**                 | Zephyr Docker                 | P1        | 小    |
+| C1  | OTA 代差（§2⑨）          | **MCUboot 移植（-M）/ 参考 bootctl+AVB（-A）**      | Zephyr/RT-Thread 社区实践         | **P1/P2** | 大    |
+| C2  | 无支持芯片总表（§2①）         | **总表自动生成 + 认证查询入口**                         | FreeRTOS Supported Devices    | P2        | 小    |
+| C3  | 迁移通道未放大（§2①）         | **FreeRTOS→CMSIS-RTOS2 迁移指南/检查器**           | —                             | P2        | 小    |
+| C4  | 中间件断代（§4.2-8）        | **关键包 LwIP/mbedtls 等纳入 hpm 或 manifest 精选集** | RT-Thread 精选包                 | P2        | 中    |
 
 **杠杆率说明**（投入 vs 解锁面）：A4+A5 两项合计投入最小（一个构建选项 + 一个上游 patch），却直接消灭"最大失"之一的调试缺位，并解锁整个 J-Link/GDB/OpenOCD 工具生态——**全表杠杆率最高**；B1 同理（一个转换脚本，把已过剩的采集能力接入业界一流可视化）。相反 C1（OTA）投入最大、且竞品方案现成，适合以"移植+文档"而非"自研"消化。
 
