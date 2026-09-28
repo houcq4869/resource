@@ -1,0 +1,36 @@
+Study/LiteOS_E2E工具链对比与得失分析.md
+  s_524663908038a2::t_6465f62ed1476b 1-334
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "dfb5c962c07042c7c52ce7d58305b1474530e2e3",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_524663908038a2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f194090a7ffe8pPJbQC1qB55U0",
+        "model": "zhipu/glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 334,
+      "total_deletions": 0,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_6465f62ed1476b": "zhipu/glm-5.3"
+      },
+      "model_totals": {
+        "zhipu/glm-5.3": {
+          "additions": 334,
+          "deletions": 0
+        }
+      }
+    }
+  }
+}
