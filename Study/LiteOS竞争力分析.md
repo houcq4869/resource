@@ -3,6 +3,10 @@
 > **定位**：基于 2026-09 联网核实的 E2E 九阶段工具链对比（对象：FreeRTOS / RT-Thread / Zephyr / ThreadX / OpenVela / 嵌入式 Linux），聚焦两个问题——**LiteOS 的竞争力现状如何、往哪个方向构建竞争力**。逐阶段的详细对比证据见文末附录；本文给出方向级的战略结论与理由，落地实现细节（分层架构、双后端同源派生、插件功能边界等）另见《LiteOS工具链竞争力与能力建设方案.md》，两者互为"分析篇 / 方案篇"。
 >
 > **口径**：本文 "LiteOS" 指 OpenHarmony 的 LiteOS-M（轻量系统 / MCU 场景）与 LiteOS-A（小型系统 / SoC 场景）两个内核；数据为 2026-09-28 快照，仓库存活性以 GitCode 主仓为准（Gitee 为已停止同步的镜像），正式采用前请以官方最新文档为准。
+>
+> **核验方法与证据分级**：全文结论于 2026-09-28 对照一手来源逐项核实，证据分三级——**源码级**（OpenHarmony/竞品官方仓库源码、构建脚本，最可靠）＞**官方文档级**（官方产品页、Release Notes、指南）＞**社区口径**（论坛实测等，仅作量级参考，如"70G+ 源码"）。凡"无 X / 不存在"类**缺席性判断**（如 OpenOCD 无 LiteOS 支持、无官方 bootloader、无 CLI 烧录），均为对官方仓库/清单/源码的检索结论，属"未发现"而非可证伪的绝对事实，置信度高但非绝对。
+>
+> **阵营口径**：全文"六家"指 5 家 RTOS（FreeRTOS / RT-Thread / Zephyr / ThreadX / OpenVela）加 1 家参照（嵌入式 Linux）。凡"唯一 / 独有"类排他表述，仅在 **RTOS 阵营内**成立；一旦纳入嵌入式 Linux（如内存消毒，Linux 侧有 KASAN/KMSAN）则另行限定。
 
 ---
 
@@ -12,9 +16,9 @@
 
 **三大长板**：
 
-1. **内核观测密度第一**：LMS 内存消毒（六家唯一）+ LiteOS-A perf（PMU + 调用栈）+ CPUP / 栈水位 / trace——竞品无一家有等价物；
+1. **内核观测密度第一**：LMS 内存消毒（除嵌入式 Linux 外 RTOS 阵营唯一）+ LiteOS-A perf（PMU + 调用栈）+ CPUP / 栈水位 / trace——竞品无一家有等价物；
 2. **产业认证闭环独有**：999 款轻量认证产品 / 368 厂商的可信落地证据 + 设备证明部件；
-3. **CMSIS-RTOS2 官方双版本兼容 + GN/Ninja 组件化构建**：迁移通道与规模化能力结构性占优。
+3. **官方 CMSIS-RTOS2 兼容层 + GN/Ninja 组件化构建**：与 Zephyr / RT-Thread / FreeRTOS 同属官方 CMSIS 兼容第一梯队，迁移差异在集成方式与工程通道；组件化构建的规模化能力结构性占优。
 
 **三大短板**：
 
@@ -31,6 +35,8 @@
 ### 1.1 对手是谁、比什么
 
 LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MMU 的 MCU）；LiteOS-A 与 OpenVela / 嵌入式 Linux 争夺低端 SoC 阵地。竞争不发生在内核参数上，而集中在三个维度：
+
+> **口径说明**：全文"六家"指 5 家 RTOS（FreeRTOS / RT-Thread / Zephyr / ThreadX / OpenVela）加 1 家参照（嵌入式 Linux）。凡"唯一 / 独有"类排他表述，仅在 RTOS 阵营内成立；涉及嵌入式 Linux 时另行限定（如内存消毒，Linux 侧有 KASAN/KMSAN）。
 
 | 维度 | 含义 | 当前标杆 |
 |---|---|---|
@@ -56,7 +62,7 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 
 | E2E 阶段 | LiteOS 现状 | 主流做法 | 判定 |
 |---|---|---|---|
-| ① 选型评估 | device_soc/board 仓库清单 + xTS 认证库 + CMSIS-RTOS2 兼容层 | FreeRTOS Supported Devices / RT-Thread 360+ BSP / Zephyr `west boards` | ⚠️ 五五开：认证库 + CMSIS 得；无官方芯片总表失 |
+| ① 选型评估 | device_soc/board 仓库清单 + xTS 认证库 + CMSIS-RTOS2 兼容层 | FreeRTOS Supported Devices / RT-Thread 官方口径近 200 款开发板 / Zephyr `west boards` | ⚠️ 五五开：认证库独得、CMSIS 属第一梯队但非独有；无官方芯片总表失 |
 | ② 工程配置 | Kconfig(menuconfig) + DevEco 图形化 + HCS/hc-gen | RT-Thread `scons --target=mdk5/iar/vsc`；FreeRTOS CMSIS-Pack | ❌ 偏失：机制齐但概念栈深、无 IDE 工程导出 |
 | ③ 编译构建 | hb → GN → Ninja 组件化 + LiteOS-A 内核独立 Makefile | Zephyr west+CMake+Ninja；RT-Thread SCons | ✅ 偏得：组件化强；Linux 宿主依赖与分发重是主要扣分 |
 | ④ 烧录下载 | DevEco Uploader（hiburn 等）+ HiBurn；无 CLI 烧录 | Zephyr `west flash`（runner 抽象）；J-Link/OpenOCD 生态 | ❌ 失：无 CLI、无通用探针，脱离收录板卡即无解 |
@@ -70,8 +76,8 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 
 ### 2.2 长板小结
 
-1. **内核观测密度六家最高**（⑥）：CPUP（10 段历史 + 中断占用）+ 栈水位 + schedtrace + LOS_Trace 双模式 + LMS（双内核、唯一内核级内存消毒器）+ LiteOS-A perf（PMU + 调用栈，RTOS 仅此与 OpenVela）。
-2. **CMSIS-RTOS2/v1 双官方兼容层**（①②）：ARM 生态迁移成本结构性低于 Zephyr/ThreadX/OpenVela。
+1. **内核观测密度六家最高**（⑥）：CPUP（10 段历史 + 中断占用）+ 栈水位 + schedtrace + LOS_Trace 双模式 + LMS（双内核、除嵌入式 Linux 外 RTOS 阵营唯一内核级内存消毒器）+ LiteOS-A perf（PMU + 调用栈，RTOS 仅此与 OpenVela）。
+2. **官方 CMSIS-RTOS2（v2）兼容层**（①②）：与 Zephyr（官方 v1+v2）、RT-Thread（官方包）、FreeRTOS（Arm 官方 v2 包）同属有官方 CMSIS 兼容的第一梯队；LiteOS 的差异在 KAL 与鸿蒙工程链的集成方式，而非"有无"。
 3. **GN/Ninja 组件化构建与鸿蒙全系统同构**（③）：多产品线规模化能力对齐 Zephyr，强于无构建系统的 FreeRTOS/ThreadX。
 4. **组织级 CI 门禁**（⑧）：多板矩阵 + 合规扫描 + **Issue 级多仓联合构建**（组件化仓库真痛点的解法）。
 5. **产业侧独有闭环**（①⑨）：xTS 兼容性认证 + 设备证明部件——无一家竞品有等价物。
@@ -86,7 +92,7 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 5. **无 CLI 烧录**（④）：CI"能编不能烧"，量产脚本化断链。
 6. **测试无编排**（⑦）：结果靠串口日志，对比 Twister 是代差；无形式化验证。
 7. **OTA 垫底**（⑨）：仅全量包、无安全引导。
-8. **包生态停滞**（①③）：hpm 部件止于 2023，对比 RT-Thread 875 包 / 1856 万下载。
+8. **包生态停滞**（①③）：hpm 已停更并被 ohpm 取代（原 registry hpm.openharmony.cn 已下线 DNS），对比 RT-Thread 软件包平台 875 包 / 1856 万下载。
 9. **工程化开放度低**（⑧）：无 Docker 镜像、无公开流水线定义。
 
 ---
@@ -105,7 +111,7 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 
 ### 3.2 迁移差距：换用 LiteOS 的成本
 
-传统 MCU 团队的沉没成本在工具链：工程在 Keil/IAR 里、肌肉记忆在 IDE 里。RT-Thread 用 `scons --target=mdk5/iar/vs` 让工程"生成即进入"，FreeRTOS 走 CMSIS-Pack 让 IDE 自己管理依赖——LiteOS 两者皆无，README 只链接两个社区移植工程。反方向却是亮点：**CMSIS-RTOS2 官方兼容层是六家中唯一的双版本支持**，从 FreeRTOS 迁移的代码层成本最低。即"**代码进得来，工具进不去**"——补齐工程互操作后，这一维度可直接反超（战略主线一，见 4.1）。
+传统 MCU 团队的沉没成本在工具链：工程在 Keil/IAR 里、肌肉记忆在 IDE 里。RT-Thread 用 `scons --target=mdk5/iar/vs` 让工程"生成即进入"，FreeRTOS 走 CMSIS-Pack 让 IDE 自己管理依赖——LiteOS 两者皆无，README 只链接两个社区移植工程。反方向则是亮点：**LiteOS 提供官方 CMSIS-RTOS2 兼容层**，从采用 CMSIS-RTOS2 的工程迁移代码层成本低。但需如实承认：Zephyr、RT-Thread、FreeRTOS 也都各有官方 CMSIS 兼容（见附录①），LiteOS 的优势在集成方式而非"唯一"。即"**代码进得来，工具进不去**"——补齐工程互操作后，这一维度可从追平走向反超（战略主线一，见 4.1）。
 
 ### 3.3 通路差距：能力居内、出口不通
 
@@ -124,8 +130,22 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 ### 3.4 护城河分层：入场券与得分点
 
 - **入场券层（不做则出局，做了也只是追平）**：Windows 原生、IDE 工程导出、CLI 烧录、调试通路——2026 年 RTOS 的及格线；
-- **得分点层（结构性独有，追不走的）**：xTS 认证库、LMS/perf 观测密度、CMSIS 双版本兼容、鸿蒙生态位（软总线/HDF 与上层应用贯通）；
-- **叙事纪律**：不与 RT-Thread 拼 875 包，不与 Zephyr 拼年提交量；对外口径统一为"**认证落机型 + 独有内核观测 + ARM 生态最短迁移路径 + 鸿蒙生态位**"。
+- **得分点层（结构性独有，追不走的）**：xTS 认证库、LMS/perf 观测密度、鸿蒙生态位（软总线/HDF 与上层应用贯通）；CMSIS 兼容属"入场加分项"而非独有——六家主流 RTOS 均有官方 CMSIS 兼容，LiteOS 仅在集成方式上略优；
+- **叙事纪律**：不与 RT-Thread 拼 875 包，不与 Zephyr 拼年提交量；对外口径统一为"**认证落机型 + 独有内核观测 + 官方 CMSIS-RTOS2 兼容与 ARM 生态集成 + 鸿蒙生态位**"（注意：六家多有官方 CMSIS 兼容，慎用"最短 / 唯一迁移路径"式表述）。
+
+### 3.5 结论 ↔ 证据映射（防漂移）
+
+核心结论在摘要、正文、附录多处反复引用，任一处修正都需全处同步。下表给出每条核心结论的关键证据与强度，供后续核验与维护。
+
+| 结论 | 关键证据（一手） | 证据强度 |
+|---|---|---|
+| 内核观测密度第一 | LMS（`components/lms`、`kernel/extended/lms`）、LiteOS-A perf（`kernel/extended/perf`）、CPUP（`los_cpup.h`）、trace（`components/trace`） | 源码级 |
+| LMS 内存消毒独有 | 双内核均有；5 家 RTOS 竞品中无内核级等价物（嵌入式 Linux 有 KASAN/KMSAN，另行限定） | 源码级 |
+| xTS 认证体系独有 | openharmony.cn/testResult：2379 测评 / 2253 产品 / 689 厂商 | 官方数据 |
+| 无 CLI 烧录 / 无 OpenOCD 支持 | hb 命令集（无 burn/flash）、manifest 仓库扫描、OpenOCD `src/rtos/rtos.c`（无 LiteOS） | 源码级 + 缺席性判断 |
+| OTA 代差 | sys_installer_lite 文档约束（轻量/小型仅全量包，AB 仅标准系统） | 官方文档 |
+| CMSIS 兼容（非独有） | LiteOS `kal/cmsis`（仅 v2）；Zephyr / RT-Thread / FreeRTOS 各有官方兼容 | 源码级 |
+| Windows 生态不可达 | 官方文档"大部分开发板源码不支持 Windows 编译"、DevEco V4.0（2023-09）停更 | 官方文档 |
 
 另一个必须正视的风险：**DevEco Device Tool 停滞是系统性风险**——官方第一入口事实失效，任何补齐路线都要回答"与 DevEco 的关系"。答案：**社区化 CLI 做事实底座，DevEco（若复活）做其上的发行版**，避免双轨内耗。
 
@@ -197,8 +217,8 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 | 差 | 对标 | 收敛手段 | 收敛后位置 |
 |---|---|---|---|
 | 上手差 | Zephyr（winget）/ RT-Thread（Env） | Windows 原生 + 最小源码集 + Makefile 轻量路径（主线二、三） | 追平 |
-| 迁移差 | 通用 IDE 生态 | IDE 工程互操作 + CMSIS 既有兼容层（主线一） | **反超**（唯一官方双版本 CMSIS） |
-| 通路差 | OpenVela/Zephyr 开放工具链 | 调试通路修复 + 命令行烧录 + 观测出口（"开墙"） | 追平且局部反超（LMS 独有） |
+| 迁移差 | 通用 IDE 生态 | IDE 工程互操作 + CMSIS 既有兼容层（主线一） | **追平→局部反超**（六家均有官方 CMSIS 兼容，LiteOS 差异在工程通道与集成方式） |
+| 通路差 | OpenVela/Zephyr 开放工具链 | 调试通路修复 + 命令行烧录 + 观测出口（"开墙"） | 追平且局部反超（LMS：除嵌入式 Linux 外 RTOS 阵营唯一） |
 
 ### 5.2 三阶段路线（方向级）
 
@@ -210,15 +230,15 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 
 ### 5.3 度量指标
 
-| 维度 | 指标 | 目标 | 测量方法 |
-|---|---|---|---|
-| 上手 | 纯净 Windows 从零到串口输出 | ≤30 分钟 | 干净虚拟机定期实测计时 |
-| 迁移 | FreeRTOS/RT-Thread 样例迁移 | ≤1 天 | CMSIS 层样例集迁移演练 |
-| 调试 | GDB `info threads` 可用 | 是 | 真板 + QEMU 双场景冒烟 |
-| CI | 编→烧→测全链命令化 | 100% | 流水线定义即验收物 |
-| 观测 | trace→Perfetto 转换器采用 | 进官方文档 | 仓库 + 文档页存在 |
-| 生态 | 芯片总表/认证查询访问量 | 持续增长 | 站点统计 |
-| 独立性 | 安装→编译→调试→烧录全链不依赖 DevEco | 是 | 端到端冒烟验证 |
+| 维度 | 指标 | 目标 | 测量方法 | 责任方 / 前置依赖 |
+|---|---|---|---|---|
+| 上手 | 纯净 Windows 从零到串口输出 | ≤30 分钟 | 干净虚拟机定期实测计时 | 工具链分发；MCU 工具链 Windows 原生可自足 |
+| 迁移 | FreeRTOS/RT-Thread 样例迁移 | ≤1 天 | CMSIS 层样例集迁移演练 | 工程互操作层；样例集与文档 |
+| 调试 | GDB `info threads` 可用 | 是 | 真板 + QEMU 双场景冒烟 | 需 OpenOCD 上游 RTOS 感知 patch（或外围支持包） |
+| CI | 编→烧→测全链命令化 | 100% | 流水线定义即验收物 | 命令行烧录能力先行 |
+| 观测 | trace→Perfetto 转换器采用 | 进官方文档 | 仓库 + 文档页存在 | 格式转换器（外围仓，不依赖内核仓） |
+| 生态 | 芯片总表/认证查询访问量 | 持续增长 | 站点统计 | 需 xTS 认证数据接口与前端入口 |
+| 独立性 | 安装→编译→调试→烧录全链不依赖 DevEco | 是 | 端到端冒烟验证 | 社区化 CLI 作为事实底座 |
 
 ---
 
@@ -232,33 +252,35 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 | 多出口漂移 | Makefile 与 GN 语义分歧、导出工程与主线产物不一致 | 同源派生 + 生成幂等 + CI 校验"同一配置多出口产物比对" |
 | 战线过长 | 三条主线与"开墙"方向同时铺开，资源失焦 | 以"30 分钟点灯"为第一里程碑先赢一场；调试修复等小投入高回报项先行 |
 
-**结语**：LiteOS 工具链的竞争力构建，本质是一场"**开墙运动**"——内核能力（LMS/perf/CPUP/CMSIS/认证体系）已是 RTOS 阵营的头部资产，全部战略动作都应围绕"把资产从围墙里接出来"展开：接向 Windows 桌面（主线二）、接向 Keil/IAR/VS Code（主线一）、接向 GDB/OpenOCD 生态、接向 CI 与产线、接向业界可视化。三条主线买的是"入场券"，开墙修的是"通路"，认证与内核观测才是"得分点"——墙开完之后，"认证落机型 + 独有内核观测 + 最短迁移路径"的差异化叙事才真正有通路可传递。**取舍的全部依据只有一条：每一分投入，买的是"入场券"还是"得分点"，以及它能接通多大的既有生态。**
+**结语**：LiteOS 工具链的竞争力构建，本质是一场"**开墙运动**"——内核能力（LMS/perf/CPUP/CMSIS/认证体系）已是 RTOS 阵营的头部资产，全部战略动作都应围绕"把资产从围墙里接出来"展开：接向 Windows 桌面（主线二）、接向 Keil/IAR/VS Code（主线一）、接向 GDB/OpenOCD 生态、接向 CI 与产线、接向业界可视化。三条主线买的是"入场券"，开墙修的是"通路"，认证与内核观测才是"得分点"——墙开完之后，"认证落机型 + 独有内核观测 + 官方 CMSIS 兼容与鸿蒙生态位"的差异化叙事才真正有通路可传递。**取舍的全部依据只有一条：每一分投入，买的是"入场券"还是"得分点"，以及它能接通多大的既有生态。**
 
 ---
 
 ## 附录：九阶段详细对照
 
-> 本附录为正文 2.1 总表的证据支撑，逐阶段列出 LiteOS 的工具现状与逐项对比（2026-09-28 核实）。
+> 本附录为正文 2.1 总表的证据支撑，逐阶段列出 LiteOS 的工具现状与逐项对比（2026-09-28 核实）。各阶段标题后的标签区分缺口性质：**通路缺口**＝能力已有但无业界出口（开墙即可，见 3.3）；**能力缺口**＝真实缺失（需补课）。
 
-### ① 选型评估
+### ① 选型评估 ｜ 通路缺口（选型入口）
 
 **LiteOS 现状**
 
-- **device_soc_* / device_board_* 仓库清单**（GitCode 未归档口径，2026-09）：`device_soc` 厂商仓 17 家（allwinner、amlogic、asrmicro、beken、bestechnic、chipsea、esp、gigadevice、goodix、hisilicon、hpmicro、nxp、rockchip、st、telink、unisoc、winnermicro），`device_board` 板卡仓 18 个——但无官方网页版"已适配芯片总表"（openharmony.cn 对应页面 404），选型要靠数仓库、读移植指南（docs porting 目录含 stm32f407/stm32mp157/bes2600 等案例）。
-- **xTS 兼容性认证库**（openharmony.cn/testResult，2026-09-28 采集）：总计 2379 次测评 / 2253 产品 / 689 厂商；其中轻量系统（LiteOS-M）999 产品 / 368 厂商、小型系统（LiteOS-A）438 产品 / 129 厂商、模组/开发板 681 款——竞品都没有的"产业落地证据库"。
-- **CMSIS-RTOS2 兼容层**（kernel_liteos_m/kal/cmsis：cmsis_os2.h + cmsis_liteos2.c，同时保留 CMSIS-RTOS v1）：六家竞品里唯一的官方双版本 CMSIS 兼容（Zephyr/ThreadX/OpenVela 均无）。
+- **device_soc_* / device_board_* 仓库清单**（GitCode **主组织活跃仓**口径，2026-09）：`device_soc` 厂商仓 17 家（allwinner、amlogic、asrmicro、beken、bestechnic、chipsea、esp、gigadevice、goodix、hisilicon、hpmicro、nxp、rockchip、st、telink、unisoc、winnermicro），`device_board` 板卡仓 18 个——但无官方网页版"已适配芯片总表"（openharmony.cn 对应页面 404），选型要靠数仓库、读移植指南（docs porting 目录含 stm32f407/stm32mp157/bes2600 等案例）。（注：GitCode 全站含 SIG 与第三方 fork，数量更大；本口径仅计主组织活跃仓。）
+- **xTS 兼容性认证库**（openharmony.cn/testResult，2026-09-28 采集）：总计 2379 次测评 / 2253 产品 / 689 厂商；其中轻量系统（LiteOS-M）999 产品 / 368 厂商（另有 1014 次测评）、小型系统（LiteOS-A）438 产品 / 129 厂商（440 次测评）、模组/开发板 681 款（229 厂商）——竞品都没有的"产业落地证据库"。
+
+  > 口径注：页面同时给出"**测评次数 / 产品数 / 厂商数**"三个不同指标，引用时勿混用；"模组/开发板"是**测评类型**维度，与 OS 类型（轻量/小型/标准）正交。OS 类型筛选为多选，须先重置为"全部"再单选，否则会得到并集（如轻量+小型 = 1454 测评）。
+- **CMSIS-RTOS2 兼容层**（kernel_liteos_m/kal/cmsis：cmsis_os2.h + cmsis_liteos2.c）：**仅 CMSIS-RTOS2（v2）**——CMSIS-RTOS v1 已于 2021 年移除（`cmsis_os.h` 对 `CMSIS_OS_VER==1` 直接 `#error`）。且**并非独有**：Zephyr 官方同时提供 v1+v2（`subsys/portability/cmsis_rtos_v1`、`cmsis_rtos_v2`）、RT-Thread 有官方包 CMSIS_RTOS1/CMSIS_RTOS2、FreeRTOS 有 Arm 官方 CMSIS-RTOS2 包（CMSIS-FreeRTOS）；ThreadX、OpenVela 无官方层。
 - 官方系统分级定义（128KiB / 1MiB 内存门槛）清晰，选型边界好判断。
 
 **对比与得失**
 
 | 对比项 | LiteOS | 竞品参照 | 判定 |
 |---|---|---|---|
-| 支持矩阵可查性 | 要数仓库，无官方总表 | FreeRTOS Supported Devices 页 / RT-Thread 360+ BSP / Zephyr `west boards` / OpenVela manifest | ❌ 失：选型入口最不友好 |
+| 支持矩阵可查性 | 要数仓库，无官方总表 | FreeRTOS Supported Devices 页 / RT-Thread 官方口径近 200 款开发板 / Zephyr `west boards` / OpenVela manifest | ❌ 失：选型入口最不友好 |
 | 产业落地证据 | 999 轻量产品 / 368 厂商认证 | 无一家有等价公开认证库 | ✅ 得：独有的可信落地数据 |
-| 迁移成本 | CMSIS-RTOS2 官方兼容 | RT-Thread 兼容层较薄；Zephyr 无 | ✅ 得：ARM 生态迁移最顺 |
-| 生态数据披露 | 无包平台、无下载量 | RT-Thread 875 包 / 1856 万下载 | ❌ 失：生态体量无对标物 |
+| 迁移成本 | CMSIS-RTOS2（v2）官方兼容 | Zephyr 官方 v1+v2、RT-Thread 官方包、FreeRTOS 官方 v2 包；LiteOS 仅 v2 | ⚠️ 持平偏得：六家多有官方 CMSIS 兼容，LiteOS 差异在集成方式 |
+| 生态数据披露 | 无包平台、无下载量 | RT-Thread 软件包平台 875 包 / 1856 万下载（api.rt-thread.org/packages/stats） | ❌ 失：生态体量无对标物 |
 
-### ② 工程配置与代码生成
+### ② 工程配置与代码生成 ｜ 通路缺口（工程互操作）
 
 **LiteOS 现状**
 
@@ -278,7 +300,7 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 
 > 战略含义：缺的不是"一个 IDE"，而是"一层工程互操作能力"（见 4.1）。
 
-### ③ 编译构建
+### ③ 编译构建 ｜ 通路缺口（宿主 / 分发）
 
 **LiteOS 现状**
 
@@ -291,21 +313,21 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 | 对比项 | LiteOS | 竞品参照 | 判定 |
 |---|---|---|---|
 | 构建系统工业化 | GN+Ninja 组件化、与鸿蒙全系统一致 | Zephyr west+CMake+Ninja 同级；RT-Thread SCons / FreeRTOS 无构建系统 | ✅ 得：多产品线规模化能力最强之一 |
-| 工具链获取 | prebuilts 脚本 + apt/pip 数十依赖 | Zephyr `west sdk install`；RT-Thread Env 自带 | ❌ 失：分发最重（社区实测全量源码 70G+） |
+| 工具链获取 | prebuilts 脚本 + apt/pip 数十依赖 | Zephyr `west sdk install`；RT-Thread Env 自带 | ❌ 失：分发最重（社区实测口径：全量源码约 50~70G+，随版本/范围波动，全编译可超 150G） |
 | Windows 原生 | ❌ 必须 Ubuntu（Remote-SSH） | Zephyr 官方 Windows 原生（winget）；RT-Thread Env 自带工具链 | ❌ 最大失之一：差距是"路线级"的 |
 | 轻量兜底路径 | LiteOS-A 内核 Makefile 可独立用；LiteOS-M 的 Makefile 实为 hb 壳 | FreeRTOS/ThreadX 随便编 | ⚠️ 半个兜底 |
 | CI 可脚本化 | hb 是纯 CLI，编译环节 CI 友好 | 同级 | ✅ 得（但烧录断链，见④） |
 
 > 战略含义：LiteOS-A 的独立内核 Makefile 是"双构建后端"（见 4.3）的现成基础；LiteOS-M 的 Makefile 仅为 hb 壳，正是兜底缺口的所在。
 
-### ④ 烧录下载
+### ④ 烧录下载 ｜ 通路缺口（无 CLI / 无通用探针）
 
 **LiteOS 现状**
 
-- **DevEco Device Tool Uploader**（一键 Upload）：烧录协议按板型固定——`hiburn-serial`（Hi3861/BearPi Nano 串口）、`hiburn-net`（Hi3516 网口）、`upgrade`（RK3568 Loader 模式，需装驱动）、`STM32_Programmer_CLI`（STM32MP157，**需自装 CubeProgrammer 且手动导入**——官方文档自认"暂未被收录"）。
+- **DevEco Device Tool Uploader**（一键 Upload）：烧录协议随板型/连接方式固定——`hiburn-serial`（Hi3861/BearPi Nano 串口）、`hiburn-net`（Hi3516 网口）或 `hiburn-usb`（Hi3516 USB）、`upgrade`（RK3568 Loader 模式，需装驱动）、`STM32_Programmer_CLI`（STM32MP157，**需自装 CubeProgrammer 且手动导入**——官方文档自认"暂未被收录"）。
 - **HiBurn**：面向 Hi3861/海思的 Windows 串口烧录器，现行官方下载点已移至社区组织（hihope_iot/docs）托管——华为不再独立分发。
 - **无 CLI 烧录**：hb 命令集无 burn/flash；OpenHarmony manifest（master ohos.xml 收录 513 仓）中无任何 burn/flash/upload/openocd/jlink/hiburn 命名仓库；hdc 是设备连接器不是烧录工具。**CI 流水线只能编不能烧**。
-- **无 J-Link/OpenOCD 烧录的官方支持**：DevEco Device Tool 全部文档与 Release Notes（V2.2~V4.0）从未提及（工具闭源，无法从源码终极排除，倾向不支持）。
+- **无 J-Link/OpenOCD 烧录的官方支持**：DevEco Device Tool 的 V2.2~V4.0 Release Notes 及现役功能页中，未将 J-Link/OpenOCD 作为调试探针或烧录器提供支持；仅在现役《使用 RTT 方式传递调测信息》页（2024-09-30）前提条件提及 JLink 硬件，V1.0.0 说明中作为免装工具提及 Jlink/OpenOCD。（工具闭源，无法从源码终极排除，倾向不支持。）
 
 **对比与得失**
 
@@ -316,12 +338,12 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 | 通用探针烧录 | 无官方支持 | FreeRTOS/ThreadX/OpenVela 全部复用 J-Link/OpenOCD 生态 | ❌ 失：脱离鸿蒙板卡生态即无路可走 |
 | 自有烧录协议 | hiburn 三形态（串/网/USB） | 无竞品有等价物 | ⚠️ 海思板卡内体验好，属"围墙花园"式得 |
 
-### ⑤ 在线调试
+### ⑤ 在线调试 ｜ 通路缺口（RTOS 感知缺位）
 
 **LiteOS 现状**
 
 - **DevEco Device Tool 调试**：官方能力清单含函数/条件/内存断点、Watch/Live Watch、调用栈、寄存器、反汇编；V3.0 Beta1 起支持 GDB、LLDB；V3.1 Release 新增 RTT 调试。**但**官方"调试能力介绍"页（更新于 2024-09-30）明确声明："当前集成的 OpenHarmony 工程编译过程进行了优化，编译出来的二进制文件，**不含调试信息，暂不支持调试能力**"。
-- **QEMU 命令行 GDB 有官方教程**：`./qemu-run -g`（QEMU 内置 gdbserver :1234）+ `arm-none-eabi-gdb` / `gdb-multiarch` + `target remote localhost:1234`（device_qemu 仓 README 第 6 节）。**真机 JTAG/SWD 的 GDB 调试官方教程不存在**。
+- **QEMU 命令行 GDB 有官方教程**：`./qemu-run -g`（QEMU 内置 gdbserver :1234）+ `arm-none-eabi-gdb` / `gdb-multiarch` + `target remote localhost:1234`（device_qemu 仓子目录 `arm_virt/liteos_a/README_zh.md` 第 6 节；仓根 README 无此节）。**真机 JTAG/SWD 的 GDB 调试官方教程在官方来源中未发现**（缺席性判断）。
 - **无 RTOS 感知**：OpenOCD 主线 `src/rtos/rtos.c` 的 rtos_types 数组含 chibios/freertos/linux/nuttx/threadx/zephyr 等 14 项——**无 LiteOS**；OpenHarmony 组织无 OpenOCD fork/patch 仓；DevEco 调试文档无任务列表/TCB 视图。
 - **替代观测**（相当完整）：LiteOS-M Shell（`task`/`stack`/`hwi`/`free`/`memusage`）+ backtrace 组件；LiteOS-A Shell（`task`/`top`/`cpup`/`dmesg` + magickey）+ `parse_excinfo.py` 异常栈离线解析。
 
@@ -334,28 +356,28 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 | 命令行/仿真调试 | QEMU gdbstub 官方教程 | Zephyr/OpenVela 同级 | ✅ 得（QEMU 路径成立） |
 | Shell 观测 | M/A 双内核命令齐全 + 异常解析脚本 | RT-Thread FinSH、OpenVela nsh 同级；FreeRTOS/ThreadX 需外部工具 | ✅ 得：兜底比多数竞品厚 |
 
-### ⑥ 跟踪与性能调优（LiteOS 相对最强的阶段）
+### ⑥ 跟踪与性能调优（LiteOS 相对最强的阶段） ｜ 通路缺口（无标准出口）
 
 **LiteOS 现状**
 
 - **Trace（双内核）**：LiteOS-M `components/trace`（`LOS_TraceStart/Stop/RecordDump/EventMaskSet` 等），Hook 预埋桩 + **离线 ring buffer（默认 2048）/ 在线串口 TLV 流**两模式，事件覆盖 task/hwi/swtmr/mem/queue/event/sem/mux；LiteOS-A 另有内核态 trace + `/dev/trace` 设备 + 用户态 ioctl 控制。**但**：全树检索无 SystemView/Perfetto/Tracealyzer 任何对接；在线模式的 IDE 客户端未公开指明。
 - **schedtrace**：`LOS_SchedTraceStart/Stop`，环形缓冲记录任务切换对，shell `st` 命令启停。
-- **CPUP 组件**：`LOS_SysCpuUsage`/`LOS_TaskCpuUsage`/`LOS_HistoryTaskCpuUsage`（10 段历史、千分比精度）+ 可选中断占用率——完整等价 FreeRTOS vTaskGetRunTimeStats 且更强。
+- **CPUP 组件**：`LOS_SysCpuUsage`/`LOS_TaskCpuUsage`/`LOS_HistoryTaskCpuUsage`（10 段历史、千分比精度）+ 可选中断占用率——完整等价 FreeRTOS `vTaskGetRunTimeStatistics`（v11 前的旧名 `vTaskGetRunTimeStats` 现为兼容宏）且更强。
 - **栈水位**：LiteOS-M `LOS_TaskInfoGet` 的 TSK_INFO_S 含 `uwPeakUsed`（峰值水位）与 `bOvf`；LiteOS-A `task` 命令直接输出 WaterLine 列——等价 uxTaskGetStackHighWaterMark。
-- **LMS（Lite Memory Sanitizer，双内核均有）**：影子内存三态标记 + gcc/clang `-fsanitize=kernel-address` 编译期插桩，检测缓冲区溢出/use-after-free/double-free，配 backtrace 定位；LiteOS-A 还有用户态检测库。**六家 RTOS 中唯一内核级内存消毒器**。
-- **LiteOS-A perf**：类 Linux perf——PMU 硬件事件（cycles/instructions/cache/branch）+ hrtimer 采样 + 软件事件，采样含 PC、**调用栈 callchain**、PID/TID，计数/采样双模式。RTOS 里独此一份（OpenVela 有源自 Linux 语义的 perf，其余均无）。
+- **LMS（Lite Memory Sanitizer，双内核均有）**：影子内存三态标记 + gcc/clang `-fsanitize=kernel-address` 编译期插桩，检测缓冲区溢出/use-after-free/double-free，配 backtrace 定位；LiteOS-A 还有用户态检测库。**除嵌入式 Linux（有 KASAN/KMSAN）外，RTOS 阵营唯一内核级内存消毒器**。
+- **LiteOS-A perf**：类 Linux perf——PMU 硬件事件（cycles/instructions/cache/branch）+ hrtimer 采样 + 软件事件，采样含 PC、**调用栈 callchain**、PID/TID，计数/采样双模式。RTOS 阵营中仅此与 OpenVela（源自 Linux 语义）具备函数级 perf，其余均无。
 
 **对比与得失**
 
 | 对比项 | LiteOS | 竞品参照 | 判定 |
 |---|---|---|---|
 | 运行统计 API | CPUP 完整 + 栈水位 + 10 段历史 | FreeRTOS 同级；RT-Thread/Zephyr 有类似物 | ✅ 得 |
-| 内存错误检测 | LMS（内核态+用户态，编译期插桩） | **无一家竞品有等价物** | ✅ 独有得 |
+| 内存错误检测 | LMS（内核态+用户态，编译期插桩） | **RTOS 阵营无等价物**（嵌入式 Linux 有 KASAN/KMSAN） | ✅ 独有得 |
 | 函数级剖析 | LiteOS-A perf（PMU+callchain） | OpenVela perf 同源；其余 RTOS 无 | ✅ 得（-A 侧） |
 | Trace 可视化 | 在线 TLV→未公开 IDE；无标准格式 | ThreadX TraceX（已开源）、OpenVela→Perfetto、FreeRTOS→Tracealyzer/SystemView、Zephyr→CTF/TraceCompass | ❌ 失：数据出不去，生态零对接 |
 | 调度观测 | schedtrace + shell | 同级 | ⚠️ 持平 |
 
-### ⑦ 测试验证
+### ⑦ 测试验证 ｜ 能力缺口（无编排器）
 
 **LiteOS 现状**
 
@@ -373,7 +395,7 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 | 形式化验证 | 无 | FreeRTOS CBMC（官方 CI 每跑） | ❌ 失 |
 | 认证测试体系 | xTS 兼容性测评（999 产品背书） | 无竞品有等价认证体系 | ✅ 独有得（产业准入视角） |
 
-### ⑧ 自动化 CI
+### ⑧ 自动化 CI ｜ 通路缺口（无镜像 / 无公开流水线定义）
 
 **LiteOS 现状**
 
@@ -390,11 +412,11 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 | 云仿真接入 | 无 | Zephyr（Renode/AVH）、Linux（KernelCI/LAVA） | ❌ 失 |
 | 触发方式 | 评论 "start build"（人肉触发） | push 即触发 | ⚠️ 体验偏旧 |
 
-### ⑨ 维护与 OTA
+### ⑨ 维护与 OTA ｜ 能力缺口（无差分 / 无 AB / 无安全引导实现）
 
 **LiteOS 现状**
 
-- **官方 OTA 组件 sys_installer_lite**（轻量/小型系统）：动态库 libhota.so，API 流程 `HotaInit → HotaWrite（内部校验/解析/写分区）→ HotaRestart`；支持厂商自定义包格式；HAL 层 `hal_hota_board.h` 由厂商适配，开源默认适配 Hi3518EV300/Hi3516DV300/Hi3861。
+- **官方 OTA 组件 sys_installer_lite**（轻量/小型系统）：小型系统构建为动态库 libhota.so（LiteOS-M 构建为静态库），API 流程 `HotaInit → HotaWrite（内部校验/解析/写分区）→ HotaRestart`（流程中另有 `HotaSetBootSettings`）；支持厂商自定义包格式；HAL 层 `hal_hota_board.h` 由厂商适配，开源默认适配 Hi3518EV300/Hi3516DV300/Hi3861。
 - **能力边界（文档原文约束）**：轻量/小型系统**仅支持全量包升级，暂不支持差分包与变分区包**；**AB 升级仅标准系统**；升级包需 Linux 制作；Hi3516 走 SD 卡升级且公钥需置入 uboot 校验。
 - **LiteOS-M 无官方 bootloader / 安全启动实现**：内核仓不含 boot 目录，安全启动仅以《安全指南》要求形式存在（芯片 ROM 可信根→逐级签名校验），开源代码无参考实现，依赖厂商。
 - **xts_device_attest_lite**：设备证明部件（兼容性平台登记 → token 烧录 → 云端校验 → 证明结果供系统服务查询）——竞品无等价物。
@@ -404,7 +426,7 @@ LiteOS-M 与 FreeRTOS / RT-Thread / Zephyr / ThreadX 争夺同一阵地（无 MM
 
 | 对比项 | LiteOS | 竞品参照 | 判定 |
 |---|---|---|---|
-| OTA 完整度 | 仅全量包；无差分/无 AB（M/A 侧） | Zephyr MCUboot（A/B+签名+回滚）、OpenVela bootctl+ddelta 差分+AVB、Linux SWUpdate/RAUC/Mender/OSTree | ❌ 最大失之一：九家对比中垫底 |
-| 安全引导 | 无官方实现（要求文档化） | MCUboot（FreeRTOS/Zephyr/RT-Thread 社区共用）、AVB、ThreadX 原厂 | ❌ 失 |
+| OTA 完整度 | 仅全量包；无差分/无 AB（M/A 侧） | Zephyr MCUboot（A/B+签名+回滚）、OpenVela bootctl+ddelta 差分+AVB、Linux SWUpdate/RAUC/Mender/OSTree | ❌ 最大失之一：各家对比中垫底 |
+| 安全引导 | 无官方实现（要求文档化） | MCUboot（FreeRTOS/Zephyr/RT-Thread 社区共用）、AVB；ThreadX 无内置 secure boot（依赖芯片原厂，另有 TrustZone ARMv8-M / MODULES） | ❌ 失 |
 | 设备证明/认证 | xts_device_attest_lite 闭环 | 无竞品有等价物 | ✅ 独有得（产业侧） |
 | 云端配套 | 华为云 IoT 侧支持未核实到一手文档（老线停更） | AWS coreOTA、Mender、balena 全链路 | ⚠️ 存疑 |
