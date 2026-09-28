@@ -2,9 +2,9 @@
 
 > **定位**：以《调研汇总.md》的 E2E 九阶段框架（选型评估 → 工程配置 → 编译构建 → 烧录下载 → 在线调试 → 跟踪调优 → 测试验证 → 自动化 CI → 维护与 OTA）为基准，将 **OpenHarmony LiteOS（LiteOS-M 轻量 / LiteOS-A 小型）** 与 FreeRTOS / RT-Thread / Zephyr / ThreadX / OpenVela / 嵌入式 Linux 逐一对比，评估 LiteOS 在开发者工具链上的**得与失**；并在此基础上**推导能力补齐清单与竞争力构建路线**（第六部分，衔接并深化《LiteOS工具链竞争力与能力建设方案.md》）。
 >
-> **来源**：本目录既有调研文档（全景调研 / 五大 RTOS 详解 / LiteOS 方案）+ 2026-09-28 联网核实（官方一手来源为主：gitee/gitcode openharmony 仓库源码与 README、docs.openharmony.cn、device.harmonyos.com、openharmony.cn/testResult、openocd 源码、GitHub/Gitee API；社区二手来源均已标注）。
+> **来源**：本目录既有调研文档（全景调研 / 五大 RTOS 详解 / LiteOS 方案）+ 2026-09-28 联网核实（两轮：首轮调研 + 二次复核勘误；官方一手来源为主：gitee/gitcode openharmony 仓库源码与 README、docs.openharmony.cn、device.harmonyos.com、openharmony.cn/testResult、openocd 源码、GitHub/Gitee API；社区二手来源均已标注）。
 >
-> **口径说明**：① "LiteOS" 默认指 OpenHarmony 社区的 kernel_liteos_m / kernel_liteos_a；华为早期独立开源线（gitee.com/LiteOS/LiteOS）单独标注为"老 LiteOS"。② OpenHarmony 社区已于 **2025-09-15 整体迁移至 gitcode.com/openharmony**，gitee 保留为镜像——引用 gitee 链接均有效。③ 竞品数据为 2026-09-28 快照。④ 核实记录与未能确认事项见文末附录。
+> **口径说明**：① "LiteOS" 默认指 OpenHarmony 社区的 kernel_liteos_m / kernel_liteos_a；华为早期独立开源线（gitee.com/LiteOS/LiteOS）单独标注为"老 LiteOS"。② OpenHarmony 社区已于 **2025-09-15 整体迁移至 gitcode.com/openharmony**，gitee 保留为镜像但**已停止同步**（两内核仓 Gitee master 分别停在 2025-08-30 / 2025-08-20，落后 GitCode 约 10~11 个月）——gitee 链接仍可读，但**仓库存活性数据一律以 GitCode 为准**（初版曾误用 Gitee API 活跃度数据，已于同日二次核实修正，见附录勘误记录）。③ 竞品数据为 2026-09-28 快照（含二次复核）。④ 核实记录与未能确认事项见文末附录。
 
 ---
 
@@ -12,8 +12,8 @@
 
 | 产品线 | 仓库 | 现状（2026-09 核实） | 与本文关系 |
 |---|---|---|---|
-| **OpenHarmony LiteOS-M**（轻量系统内核） | kernel_liteos_m | 806 star / 93 贡献者；master 最后提交 2025-08-30，**近 12 个月 master 零提交**，进入低频维护态 | 本文主角（MCU/无 MMU 场景） |
-| **OpenHarmony LiteOS-A**（小型系统内核） | kernel_liteos_a | 2281 star / 92 贡献者；master 最后提交 2025-08-20，同样低频维护 | 本文主角（有 MMU SoC 场景） |
+| **OpenHarmony LiteOS-M**（轻量系统内核） | kernel_liteos_m | GitCode master 最后提交 **2026-06-22**，近 12 个月 10 条提交（均为单维护者 Bugfix）；5.1/6.0/6.1/7.0 四条版本线仍有 cherry-pick 维护（5.1.0-Release 2026-07-23 合入修复）——**低频维护但未停更**（Gitee 镜像 806 star 为迁移前历史累积） | 本文主角（MCU/无 MMU 场景） |
+| **OpenHarmony LiteOS-A**（小型系统内核） | kernel_liteos_a | GitCode master 最后提交 **2026-07-28**，近 12 个月 **86 条提交且逐月加速**（2026-07 单月 22 条，fatfs/console 等模块持续修复）；5.1/6.0/6.1/7.0 四条版本线并行维护——**活跃维护状态**（Gitee 镜像 2281 star 为迁移前历史累积） | 本文主角（有 MMU SoC 场景） |
 | 老华为 LiteOS（独立 IoT OS） | LiteOS/LiteOS | 2569 star（Gitee）；master 最后提交 2022-04，仓库最后活动止于 2023 年，**事实停更**；配套 LiteOS Studio（518 star）最后 push 2023-04，**工具停摆** | 仅作历史包袱与迁移素材（AgentTiny/LwM2M 端云能力已不在主线演进） |
 
 官方定位（docs quickstart-overview 原文）：轻量系统 = MCU 类处理器（Cortex-M / RISC-V 32 位），最小内存 128KiB；小型系统 = 应用处理器（Cortex-A），最小内存 1MiB。即 LiteOS-M 对标 FreeRTOS/RT-Thread/Zephyr/ThreadX 的 MCU 阵地，LiteOS-A 对标 OpenVela/嵌入式 Linux 的低端 SoC 阵地。
@@ -42,7 +42,7 @@
 
 **LiteOS 现状（工具清单）**
 
-- **device_soc_* / device_board_* 仓库清单**（一手枚举，2026-09）：`device_soc` 厂商仓 **17 家**（allwinner、amlogic、asrmicro、beken、bestechnic、chipsea、esp、gigadevice、goodix、hisilicon、hpmicro、nxp、rockchip、st、telink、unisoc、winnermicro），`device_board` 板卡仓 **19 个**（bearpi、hihope、talkweb、unionman、lockzhiner、seed 等）——但没有官方网页版"已适配芯片总表"（openharmony.cn 对应页面 404），选型要靠数仓库、读移植指南（docs porting 目录含 stm32f407/stm32mp157/bes2600 等案例）。
+- **device_soc_* / device_board_* 仓库清单**（一手枚举，2026-09，GitCode 未归档口径）：`device_soc` 厂商仓 **17 家**（allwinner、amlogic、asrmicro、beken、bestechnic、chipsea、esp、gigadevice、goodix、hisilicon、hpmicro、nxp、rockchip、st、telink、unisoc、winnermicro），`device_board` 板卡仓 **18 个**（bearpi、hihope、talkweb、unionman、lockzhiner、kaihong 等）——但没有官方网页版"已适配芯片总表"（openharmony.cn 对应页面 404），选型要靠数仓库、读移植指南（docs porting 目录含 stm32f407/stm32mp157/bes2600 等案例）。
 - **xTS 兼容性认证库**（openharmony.cn/testResult，2026-09-28 采集）：总计 2379 次测评 / 2253 产品 / 689 厂商；其中**轻量系统（LiteOS-M）999 产品 / 368 厂商**、小型系统（LiteOS-A）438 产品 / 129 厂商、模组/开发板 681 款——这是竞品都没有的"产业落地证据库"。
 - **CMSIS-RTOS2 兼容层**（kernel_liteos_m/kal/cmsis：cmsis_os2.h + cmsis_liteos2.c，同时保留 CMSIS-RTOS v1）：从其他 RTOS 迁移时 CMSIS 层代码基本可直接复用——**六家竞品里唯一的官方双版本 CMSIS 兼容**（Zephyr/ThreadX/OpenVela 均无）。
 - 官方系统分级定义（128KiB / 1MiB 内存门槛）清晰，选型边界好判断。
@@ -110,7 +110,7 @@
 
 - **DevEco Device Tool Uploader**（Tool Chain 页签，一键 Upload）：烧录协议按板型固定——`hiburn-serial`（Hi3861/BearPi Nano 串口）、`hiburn-net`（Hi3516 网口）、`upgrade`（RK3568 Loader 模式，需装驱动）、`STM32_Programmer_CLI`（STM32MP157，**需自装 CubeProgrammer 且手动导入**——官方文档自认"暂未被收录"）。
 - **HiBurn**：面向 Hi3861/海思的 Windows 串口烧录器，现行官方下载点已移至社区组织（hihope_iot/docs）托管——华为不再独立分发。
-- **无 CLI 烧录**：hb 命令集无 burn/flash；OpenHarmony manifest（496 仓）中无任何 burn/flash/upload/openocd/jlink/hiburn 命名仓库；hdc 是设备连接器不是烧录工具。**CI 流水线只能编不能烧**。
+- **无 CLI 烧录**：hb 命令集无 burn/flash；OpenHarmony manifest（master ohos.xml 收录 513 仓，二次复核值）中无任何 burn/flash/upload/openocd/jlink/hiburn 命名仓库；hdc 是设备连接器不是烧录工具。**CI 流水线只能编不能烧**。
 - **无 J-Link/OpenOCD 烧录的官方支持**：DevEco Device Tool 全部文档与 Release Notes（V2.2~V4.0）从未提及（工具闭源，无法从源码终极排除，倾向不支持）。
 
 **对比与得失**
@@ -199,7 +199,7 @@
 
 **LiteOS 现状**
 
-- **组织级 CI（成熟且体系特殊）**：Gitee webhook 触发，PR 下评论 **"start build"** 启动门禁；**以 Issue 为单位联合构建**（一个 Issue 挂多 PR 解决多仓依赖）；门禁项 = 多板编译告警 + 构建规范 + CodeCheck（静态/安全/开源合规/敏感词扫描）+ 部署烧录 + 冒烟/功能测试；CI 门户 ci.openharmony.cn（实测可达）+ 每日构建。贡献准入：DCO 在线签署（`git commit -s`）。
+- **组织级 CI（成熟且体系特殊）**：Gitee webhook 触发，PR 下评论 **"start build"** 启动门禁；**以 Issue 为单位联合构建**（一个 Issue 挂多 PR 解决多仓依赖）；门禁项 = 多板编译告警 + 构建规范 + CodeCheck（静态/安全/开源合规/敏感词扫描）+ 部署烧录 + 冒烟/功能测试；CI 门户 ci.openharmony.cn（初测可达；2026-09-28 二次复核时返回 502，状态不稳定）+ 每日构建。贡献准入：DCO 在线签署（`git commit -s`）。
 - **仓库内无任何 CI 文件**（kernel_liteos_m/a 均无 Jenkinsfile/.github/workflows/Gitee Go，仅 OAT.xml 合规配置）——CI 完全收敛在组织基础设施。
 - **外部复现断供**：无官方 GitHub 镜像 Actions、无 Docker 构建镜像、无云仿真（Renode/AVH 类）接入文档。
 
@@ -243,14 +243,14 @@
 
 | 维度 | LiteOS-M | LiteOS-A | FreeRTOS | RT-Thread | Zephyr | OpenVela |
 |---|---|---|---|---|---|---|
-| Star（主仓） | 806 | 2281 | 4,530（Kernel） | 12,250 | 16,635 | — |
-| 近一年提交（master） | **0** | **0** | 69（发布镜像仓） | 773 | **23,610** | 活跃（drivers_hdf 等 2026-09 仍在推） |
+| Star（主仓） | 806（Gitee 镜像；GitCode 主仓 42） | 2281（Gitee 镜像；GitCode 主仓 34） | 4,530（Kernel） | 12,250 | 16,635 | — |
+| 近一年提交（master） | 10（低频 Bugfix） | **86（逐月加速）** | 69（发布镜像仓） | 773 | **23,610** | 活跃（drivers_hdf_core 2026-09-22 仍在推） |
 | 贡献者 | 93 | 92 | 234 | 308 | 402 | — |
-| 发布节奏 | 随 OH 大版本（6.0 分支 2025-04/05） | 同左 | LTS 202604（约 2 年一版） | v5.3.0（2026-09-10） | v4.4.2（2026-08-07，约 4 个月一版） | 随社区 |
+| 发布节奏 | 随 OH 大版本（7.0-Release 分支 2026-06） | 同左（7.0-Release 分支 2026-07） | LTS 202604（约 2 年一版） | v5.3.0（2026-09-10） | v4.4.2（2026-08-07，约 4 个月一版） | 随社区 |
 | 包/部件生态 | hpm 市场停滞（liteos 部件止于 2023-02，OS 筛选项止于 3.2-Beta3；仅每日快照在跑） | 同左 | CMSIS-Pack 官方分发 | **875 包 / 1856 万下载** | west 模块体系 | manifest 仓体系 |
 | 认证产品 | 999 款（368 厂商） | 438 款（129 厂商） | — | — | — | xTS 文档级 |
 
-另：开源鸿蒙社区整体（2025-12 官方口径）：累计 10,013 贡献者、523 生态伙伴、1552 款兼容性产品、71 个 SIG——**大盘活跃，但两个内核仓本身近一年零提交**（活跃度集中在 HDF/驱动与上层子系统），内核进入"稳定维护/功能冻结"状态。老 LiteOS 仓（2569 star）与 LiteOS Studio（518 star）已分别于 2022/2023 年停更。
+另：开源鸿蒙社区整体（2026-04-30 数字中国峰会官方口径）：代码超 1.3 亿行、贡献者超 1.3 万名、伙伴单位 500 余家、软硬件产品品类超 1700 款，版本迭代至 6.1 Release（另有 7.0 Release）。**仓库存活性必须区分主仓与镜像**：初版报告据 Gitee API 得出"两内核仓近一年零提交"，系 Gitee 镜像停止同步（落后 GitCode 10~11 个月）造成的假象——GitCode 真实状态为 **LiteOS-A 活跃维护且在加速（年 86 提交）、LiteOS-M 低频维护未停（年 10 提交，单维护者 Bugfix）**，HDF/驱动等子系统仓同步活跃。修正后"内核功能冻结"的定性不再成立，但与 Zephyr（年 2.36 万提交）的演进体量差距依然是数量级的。老 LiteOS 仓（2569 star）与 LiteOS Studio（518 star）已分别于 2022/2023 年停更（2026 年复核无代码活动）。
 
 ---
 
@@ -276,7 +276,7 @@
 6. **测试无编排**（⑦）：自研 iCunit + 串口日志判读，对比 Zephyr Twister（矩阵+多平台+结构化报告）是代差；无 CBMC 级形式化验证。
 7. **OTA 垫底**（⑨）：仅全量包、无差分、无 AB（M/A）、无官方安全 bootloader——对比 MCUboot/bootctl+AVB/SWUpdate 体系是能力代差。
 8. **包生态名存实亡**（①③）：hpm 市场稳定部件止于 2023，对比 RT-Thread 875 包/1856 万下载的活生态；中间件（LwM2M/CoAP/LwIP）随老 LiteOS 停更而断代。
-9. **内核演进趋停**（生态）：两内核仓 master 近一年零提交（对照 Zephyr 年 2.36 万提交、RT-Thread v5.3.0 月前发版）；且正处于 Gitee→GitCode 迁移期，外部协作入口动荡。
+9. **内核演进投入分化且体量小**（生态）：LiteOS-M 年 10 提交（单维护者 Bugfix）、LiteOS-A 年 86 提交（修复为主、前向新功能少）——两仓均在 GitCode 持续维护（初版"近一年零提交"系 Gitee 镜像停更假象，已二次核实修正），但对照 Zephyr 年 2.36 万提交、RT-Thread v5.3.0 月前发版，**演进体量仍是数量级差距**；且处于 Gitee→GitCode 迁移期，外部协作入口与数据口径动荡。
 10. **工程化开放度低**（⑧）：仓库内无 CI 定义、无 Docker 镜像、无 GitHub 官方 Actions、无云仿真接入——社区复现与二次集成成本高。
 
 ### 4.3 一句话画像
@@ -319,8 +319,8 @@
 
 在展开清单前，先明确三个影响所有决策的前提判断：
 
-**前提一：内核演进趋停不阻塞工具链建设。**
-两内核仓 master 近一年零提交（§3），但这恰恰意味着：工具链补齐的多数项目**位于内核仓之外**（CLI、工程生成器、OpenOCD helper、转换器、编排器、MCUboot 移植都是外围仓或上游项目），可以独立于内核演进节奏推进。内核"能力冻结"与工具链"通路建设"是两条不相交的时间线——不要用"上游不动"作为不动的理由。
+**前提一：内核演进节奏不阻塞工具链建设。**
+内核演进呈"维护态"（§3：-M 年 10 提交、-A 年 86 提交，均以修复为主、前向新功能少；初版"零提交"系 Gitee 镜像停更假象，已修正），但工具链补齐的多数项目**位于内核仓之外**（CLI、工程生成器、OpenOCD helper、转换器、编排器、MCUboot 移植都是外围仓或上游项目），可以独立于内核演进节奏推进。内核"维护态"与工具链"通路建设"是两条不相交的时间线——不要用"上游演进慢"作为不动的理由。
 
 **前提二：失分的结构性根源是"围墙"，不是"缺课"。**
 逐条审视十个"失"：上手三断点（③②）、RTOS 感知（⑤）、观测出口（⑥）、CLI 烧录（④）、测试编排（⑦）、OTA（⑨）——除 OTA 和测试编排外，**全部是"已有能力缺通路"或"通路绑定停滞工具"**。这决定了补齐策略以"开墙"为主（低成本、高杠杆）、"补课"为辅（仅 OTA/编排两处是真实能力缺口）。
@@ -431,7 +431,7 @@
 |---|---|---|
 | 与鸿蒙标准化冲突 | Win 原生/工程导出可能被视为偏离 hb/GN 主线 | GN 描述为唯一事实源，一切导出皆**派生**；Win/IDE 定位为入口层，不改主线语义（沿既有方案 §4.2 原则） |
 | DevEco 关系 | 社区 CLI 与官方工具潜在双轨 | CLI 定位为"开源底座"，DevEco（若复活）作为其上发行版；功能对齐而非互相替代 |
-| 内核仓响应慢 | 部分 PR（如 Kconfig debug 模板）需上游配合 | 优先做外围仓/上游项目类项（OpenOCD、转换器、MCUboot）；内核仓内项控制到最少 |
+| 内核仓响应慢 | LiteOS-M 单维护者低频响应，部分 PR（如 Kconfig debug 模板）需上游配合 | 优先做外围仓/上游项目类项（OpenOCD、转换器、MCUboot）；内核仓内项控制到最少 |
 | Gitee→GitCode 迁移期动荡 | 协作入口与 CI 归属未定（§3） | 双托管同步发布；流水线定义同时给 Gitee/GitCode/镜像三份 |
 | 双后端/多出口维护漂移 | 导出工程与主线产物不一致 | 生成幂等 + CI 每日校验"同一配置两出口产物比对" |
 | 资源不足 | 清单 15 项不可能齐头并进 | 严格按 MVP（A4+A5+A1/A2）起步，以快速胜利换投入信心 |
@@ -446,9 +446,9 @@ LiteOS 工具链的竞争力构建，本质是一场"**开墙运动**"：内核�
 
 **核实方法**：四路并行调研，逐项对照官方一手来源（仓库源码 raw 直读 / 官方文档原文 / 官方 API），二手来源仅作线索并标注性质。关键一手来源：
 
-- **仓库/源码**：gitee.com/openharmony（kernel_liteos_m、kernel_liteos_a、build_lite、build、device_qemu、vendor_ohemu、update_sys_installer_lite、xts_device_attest_lite、developtools_hdc、manifest 的 ohos.xml）、github.com/openocd-org/openocd（src/rtos/rtos.c）、gitee.com/LiteOS/LiteOS 与 LiteOS_Studio（停更佐证）、gitcode.com/api/v5/orgs/openharmony/repos（迁移后 786 仓枚举）
+- **仓库/源码**：gitee.com/openharmony（kernel_liteos_m、kernel_liteos_a、build_lite、build、device_qemu、vendor_ohemu、update_sys_installer_lite、xts_device_attest_lite、developtools_hdc、manifest 的 ohos.xml）、github.com/openocd-org/openocd（src/rtos/rtos.c）、gitee.com/LiteOS/LiteOS 与 LiteOS_Studio（停更佐证）、gitcode.com/openharmony（**二次核实**：组织 672 个未归档仓枚举、kernel_liteos_m/a 经 git 协议浅克隆逐分支核对提交历史、drivers_hdf_core 与 build_lite 活跃度旁证、manifest ohos.xml 513 仓计数；注：build_lite 仓 2023-05-31 即自然停更归档，现行 hb 由 build 仓分发）
 - **官方文档**：docs.openharmony.cn / openharmony/docs 仓（quickstart-ide-env-win、quickstart-ide-3861-burn、subsys-ota-guide、kernel-mini-memory-trace/lms、kernel-small-debug-perf/shell、xts.md、贡献流程）、device.harmonyos.com（DevEco Device Tool 简介/调试能力/Release Notes V2.2~V4.0/FAQ）
-- **官方数据 API**：Gitee/GitHub repo 与 commits API（star/提交/贡献者）、openharmony.cn/testResult（认证数据）、npm registry（@ohos/hpm-cli 1.6.32）、ci.openharmony.cn（可达性实测）、hpm.harmonyos.com（部件市场现状实测）
+- **官方数据 API**：GitHub repo 与 releases API（竞品数据）、Gitee API（仅 star/贡献者等迁移前历史累积值；**其提交活跃度数据自 2025-09-15 GitCode 迁移后失真，不可用于存活性判断**）、openharmony.cn/testResult（认证数据）、openharmony.cn/newList 官方新闻（2026-04 社区口径）、npm registry（@ohos/hpm-cli 1.6.32）、ci.openharmony.cn（初测可达、2026-09-28 复核 502）、hpm.harmonyos.com（部件市场现状实测）
 - **社区二手（仅用于"公认短板"佐证，均注明）**：掘金 7666040029953212462（Mac 编译踩坑）、blog.sanchuanhehe.com（南向环境）、CSDN jklinux 145958790（70G 磁盘）、CSDN 161729242（"LiteOS 移植难度最高"）、华为开发者论坛置顶 FAQ 0203380024404140371（半官方，DevEco 安装坑清单）、packages.rt-thread.org（875 包/1856 万，一手）
 
 **关键"未能确认"事项（报告中已按谨慎口径表述）**：
@@ -462,6 +462,17 @@ LiteOS 工具链的竞争力构建，本质是一场"**开墙运动**"：内核�
 7. 官方"已适配芯片总数"、hpm 部件总数、轻量系统出货量——无官方一手数字，本文以仓库枚举与认证数据替代并注明口径。
 8. WSL 作为官方支持路径——官方文档仅出现 Remote-SSH Ubuntu 方案，未出现 WSL 表述。
 
-**数据口径提示**：老 LiteOS 仓 master 最后提交 2022-04（commits API），仓库最后活动止于 2023-09（repo API updated_at）——两者不矛盾（分支/其他对象活动晚于 master）；引用时注意区分。开源鸿蒙社区整体数据（10,013 贡献者/523 伙伴/1552 产品）为 2025-12 官方论坛口径，与官网 testResult 现值（2253 产品）存在时点差异。
+**二次核实与勘误记录（2026-09-28 第二轮）**：
+
+| 原表述 | 核实结果 | 处置 |
+|---|---|---|
+| "两内核仓 master 近 12 个月零提交、演进趋停/低频维护态" | **错误**——Gitee 镜像停更假象（镜像落后 GitCode 10~11 个月）。GitCode 实况：liteos_m master 2026-06-22、近一年 10 提交（Bugfix）；liteos_a master 2026-07-28、近一年 **86 提交且逐月加速**（2026-07 单月 22 条）；两仓 5.1/6.0/6.1/**7.0**-Release 四条版本线均有 2026 年 cherry-pick 维护 | 全文修正（§0/§3/§4.2-9/§6.1） |
+| manifest 收录 496 仓 | master ohos.xml 实为 **513** 仓 | 已修正 |
+| device_board 板卡仓 19 个 | GitCode 未归档口径 **18** 个（列举同步更新） | 已修正 |
+| ci.openharmony.cn "实测可达" | 二次复核时 **HTTP 502**（状态不稳定） | 加注 |
+| 社区数据 2025-12 口径（10,013 贡献者/523 伙伴/1552 产品） | **过期**——2026-04-30 官方新口径：代码 1.3 亿+行、贡献者 1.3 万+、伙伴单位 500+ 家、产品品类 1700+ 款 | 已更新 |
+| DevEco Device Tool V4.0（2023-09）/ 调试"暂不支持"声明（页面 2024-09-30）/ Windows 编译限制 / OTA 约束 / 内核组件（trace、LMS、CPUP、kal/cmsis、iCunit、apps/perf）/ xTS 框架（hctest/hcpptest）/ docs 在线版 v6.1 / 认证数据（2379/2253/689） / 竞品 release tag（V11.3.1、v5.3.0、v4.4.2）/ 老 LiteOS 停更 / hpm liteos 部件止于 2023-02 / OpenOCD rtos_types 14 项无 LiteOS | **全部复核一致**（master 与 6.0/6.1 Release 分支交叉核对） | 维持 |
+
+**数据口径提示**：① 老 LiteOS 仓 master 最后提交 2022-04（commits API），仓库最后活动止于 2023-09（repo API updated_at）——两者不矛盾（分支/其他对象活动晚于 master）。② **仓库存活性一律以 GitCode 主仓为准**（Gitee 镜像 2025-08/09 后停止同步）；star 数沿用 Gitee 历史累积值仅作社区关注度参考（GitCode 迁移后主仓 star 尚低：liteos_m 42 / liteos_a 34）。③ 社区整体数据（1.3 万+贡献者/500+伙伴/1700+款产品品类）为 2026-04-30 官方新闻口径，"产品品类超 1700 款"与官网 testResult 兼容性产品现值（2253 产品型号）统计口径不同，引用时注意区分。
 
 > **免责声明**：本对比为技术选型参考；工具能力、版本与支持范围随厂商策略变化（尤其 OpenHarmony 正处 Gitee→GitCode 迁移期），正式采用前请以官方最新文档为准。
