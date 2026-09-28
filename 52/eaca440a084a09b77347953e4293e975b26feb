@@ -1,0 +1,35 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "52eaca440a084a09b77347953e4293e975b26feb",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_524663908038a2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f194090a7ffe8pPJbQC1qB55U0",
+        "model": "kimi-k3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 17,
+      "total_deletions": 17,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_0f1d3b722bc11c": "kimi-k3",
+        "t_5a76bb0460c7da": "kimi-k3"
+      },
+      "model_totals": {
+        "kimi-k3": {
+          "additions": 17,
+          "deletions": 17
+        }
+      }
+    }
+  }
+}
