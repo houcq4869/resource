@@ -1,0 +1,36 @@
+AGENTS.md
+  s_2c31ee5291a214::t_b53e4216cb4d98 1-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "ca3234ff71f0a593be1e49dd996667b43732585c",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_2c31ee5291a214": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f2f0746c0ffeJvVJNLAtRLDRkz",
+        "model": "kimi-k3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 49,
+      "total_deletions": 0,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_b53e4216cb4d98": "kimi-k3"
+      },
+      "model_totals": {
+        "kimi-k3": {
+          "additions": 49,
+          "deletions": 0
+        }
+      }
+    }
+  }
+}
