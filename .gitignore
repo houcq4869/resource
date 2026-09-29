@@ -6,3 +6,7 @@
 .DS_Store
 *.tmp
 .obsidian/plugins/obsidian-git/obsidian_askpass.sh
+
+# 本地参考源码克隆（不纳入版本管理）
+/Study/cortex-debug/
+/Study/nuttx/
