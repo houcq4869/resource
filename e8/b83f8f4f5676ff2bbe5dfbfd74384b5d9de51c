@@ -1,0 +1,62 @@
+Study/各OS工具链现状与LiteOS竞争力方向（一页总结）.md
+  s_9b7a04d268982a::t_e11545b4f1d838 1-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "e8b83f8f4f5676ff2bbe5dfbfd74384b5d9de51c",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_9b7a04d268982a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f15185af4ffeNiUlYT7ZBM9goJ",
+        "model": "qwen3.8-max"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 77,
+      "total_deletions": 0,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_e11545b4f1d838": "qwen3.8-max"
+      },
+      "model_totals": {
+        "qwen3.8-max": {
+          "additions": 77,
+          "deletions": 0
+        }
+      }
+    },
+    "s_ae8525339efde1": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f15019d01ffeuhkwWL17KbHRGY",
+        "model": "kimi-k3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 321,
+      "total_deletions": 307,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_071c52467a146b": "kimi-k3",
+        "t_1de6e15143748c": "kimi-k3",
+        "t_5a48c2dccc5a4c": "kimi-k3",
+        "t_a20fcd9f1fd65e": "kimi-k3",
+        "t_cabc910402935f": "kimi-k3",
+        "t_d517cac05ae63d": "kimi-k3",
+        "t_d7672e8e9c1033": "kimi-k3"
+      },
+      "model_totals": {
+        "kimi-k3": {
+          "additions": 1145,
+          "deletions": 310
+        }
+      }
+    }
+  }
+}
