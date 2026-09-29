@@ -131,13 +131,13 @@
 
 ## 3.4 调试
 
-| 工具 | 能力 | 属性 |
-|---|---|---|
-| **串口 console / earlycon** | 最基础启动日志；earlycon 输出正式 console 前的早期日志 | 开源 |
-| **GDB + GDBServer** | 用户态/交叉调试，目标端 stub | 开源 GPL |
-| **KGDB / KDB** | 内核级调试（GDB 经串口/网络） | 开源 GPL-2.0 |
-| **OpenOCD + JTAG/SWD** | 核级调试与烧写（内核未起来时的定位手段） | 开源 GPL-2.0 |
-| **Lauterbach TRACE32** | 高端多核/ETM trace，支持 Linux 感知 | 商业 |
+| 工具                        | 能力                                   | 属性         |
+| ------------------------- | ------------------------------------ | ---------- |
+| **串口 console / earlycon** | 最基础启动日志；earlycon 输出正式 console 前的早期日志 | 开源         |
+| **GDB + GDBServer**       | 用户态/交叉调试，目标端 stub                    | 开源 GPL     |
+| **KGDB / KDB**            | 内核级调试（GDB 经串口/网络）                    | 开源 GPL-2.0 |
+| **OpenOCD + JTAG/SWD**    | 核级调试与烧写（内核未起来时的定位手段）                 | 开源 GPL-2.0 |
+| **Lauterbach TRACE32**    | 高端多核/ETM trace，支持 Linux 感知           | 商业         |
 
 ## 3.5 跟踪与性能调优
 
