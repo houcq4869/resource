@@ -1,0 +1,43 @@
+Study/工具与能力矩阵.md
+  s_ae8525339efde1::t_740164bbcb327d 5,8,11,15-28,41-53,70-71,78-80,88-105,115-121,132,137-141,145-149,153-157,161-164,168-172,176-181,185-191,195-198,202-206,217,220-221,235,239,246-249,251,269-272,276,278,291-292,321,329,337-338,342,345,352,367-369,378,388,394,396,485-501,534,540,542-549,560
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "1cfb64c237d9c0cac7908d13e8a2199957c6c7c5",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_ae8525339efde1": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f15019d01ffeuhkwWL17KbHRGY",
+        "model": "kimi-k3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 167,
+      "total_deletions": 130,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_071c52467a146b": "kimi-k3",
+        "t_1de6e15143748c": "kimi-k3",
+        "t_5a48c2dccc5a4c": "kimi-k3",
+        "t_740164bbcb327d": "kimi-k3",
+        "t_a20fcd9f1fd65e": "kimi-k3",
+        "t_cabc910402935f": "kimi-k3",
+        "t_d517cac05ae63d": "kimi-k3",
+        "t_d7672e8e9c1033": "kimi-k3"
+      },
+      "model_totals": {
+        "kimi-k3": {
+          "additions": 1312,
+          "deletions": 440
+        }
+      }
+    }
+  }
+}
