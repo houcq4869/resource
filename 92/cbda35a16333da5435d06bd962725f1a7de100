@@ -1,0 +1,36 @@
+.gitignore
+  s_ae8525339efde1::t_65352579269764 9-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "92cbda35a16333da5435d06bd962725f1a7de100",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_ae8525339efde1": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f15019d01ffeuhkwWL17KbHRGY",
+        "model": "kimi-k3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 4,
+      "total_deletions": 0,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_65352579269764": "kimi-k3"
+      },
+      "model_totals": {
+        "kimi-k3": {
+          "additions": 4,
+          "deletions": 0
+        }
+      }
+    }
+  }
+}
