@@ -1,0 +1,47 @@
+Study/工具与能力矩阵.md
+  s_ae8525339efde1::t_d7672e8e9c1033 99-120
+  s_ae8525339efde1::t_071c52467a146b 243
+  s_ae8525339efde1::t_cabc910402935f 30
+  s_ae8525339efde1::t_77f53a1a70770e 27-29
+  s_ae8525339efde1::t_9118ed1b8ee00e 31-33
+  s_ae8525339efde1::t_997efdaacc2c60 121-123
+Study/调研素材/ThreadX开发工具与IDE支持调研.md
+  s_ae8525339efde1::t_5a48c2dccc5a4c 1-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "3ef1f87ac6597fe470008770f1897033a06efa0d",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_ae8525339efde1": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f15019d01ffeuhkwWL17KbHRGY",
+        "model": "kimi-k3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 601,
+      "total_deletions": 3,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_071c52467a146b": "kimi-k3",
+        "t_1de6e15143748c": "kimi-k3",
+        "t_5a48c2dccc5a4c": "kimi-k3",
+        "t_cabc910402935f": "kimi-k3",
+        "t_d7672e8e9c1033": "kimi-k3"
+      },
+      "model_totals": {
+        "kimi-k3": {
+          "additions": 601,
+          "deletions": 3
+        }
+      }
+    }
+  }
+}
