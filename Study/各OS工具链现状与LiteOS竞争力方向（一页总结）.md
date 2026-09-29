@@ -31,18 +31,18 @@
 
 ## 二、LiteOS 短板
 
-| 类别 | 短板 | 硬证据（2026-09-29 核实） | 修复性质 |
-|---|---|---|---|
-| **A 入场券** | 宿主/分发 | `prebuilts_download.sh` 仅认 `linux/darwin`，其余 `exit 1`；官方原文"大部分开发板源码不支持 Windows 编译"+"**烧录需要在 Windows 环境中进行**"→ **官方双机架构**；全量源码 6.1 LTS **69.3GB** / 7.0 **57.3GB**，实测检出 **112GB / 505 仓**，而 `kernel_liteos_m` 仅 **12MB**；官方 Docker tag **冻结 3.2**；`ci.openharmony.cn` **502** | 工程/分发问题，可快速补 |
-| **A** | IDE 工程不可达 | OpenHarmony 全 org `.uvprojx` **0**、`.ewp` **0**（对照 `CMakeLists.txt` 2.8k）；README 原文把 IAR/Keil MDK 编译方式**外包给"社区爱好者贡献的站点"**。**但** arch 层已有 `iar×4`、`keil×2` 实现 + `COMPILER_ICCARM` + `config_iccarm.gni` + `iar_tls` → **缺工程层，不缺编译器支持** | 通路缺口（成本低） |
-| **A** | 第一入口停摆 | DevEco Device Tool 最新仍是 **V4.0（2023-09-04）**，**3 年 25 天零新版**（CDN `Last-Modified` 同日）；官方调试页仍写"编译出来的二进制文件**不含调试信息，暂不支持调试能力**"（2024-09-30），且与工具简介页"支持源码级调试"自相矛盾 | 系统性风险 |
-| **A** | 无 CLI 烧录 | `hb` 实测 **13 个子命令、无 burn/flash**（全目录零命中）；非 IDE 路径是板厂 **Windows GUI**（HiBurn / HiTool + 手写 XML 分区表）→ **CI 能编不能烧** | 通路缺口 |
-| **B 通路** | RTOS 感知为零 | OpenOCD 主线 `rtos_types[]` **13 个 RTOS 无 LiteOS**；`src/rtos/` 无 `liteos.c`（旁证：RTEMS 支持 patch 自 2023-05 挂 NEW **3 年未合入** → 上游日历不可控） | 开墙（1 处内核改动） |
-| **B** | 仿真/真机面窄 | `device_qemu` 10 个目标但**须自行编译 qemu-6.2.0、预编译包 0**；真机 mini **2 款**、small **2 款**；`kernel_liteos_m` 门禁 **2 项、真机门禁 0 项** | 补课 + 开墙 |
-| **B** | 观测数据围墙 | SystemView / Perfetto / CTF / Tracealyzer **四种标准出口全树零命中**（实为自研 TLV + 串口 pipeline，`LOSCFG_TRACE_TLV_BUF_SIZE=100`）；`perf` 仅 LiteOS-A 且需 **nfs 导出**才能分析 | 开墙（内核零改动可做） |
-| **B** | 测试无编排 | 无编排器，结果靠**串口日志判读**；仓内 CI 定义文件 **0**；**对标对象应是 ESP-IDF 的 pytest 模式而非 Twister**（Twister 深绑 west/CMake/board YAML，经核实不可复用） | 补课（可白嫖 pytest 生态） |
-| **C 真能力** | OTA 代差 | 官方原文"轻量和小型系统**仅支持全量包升级**，暂不支持差分包、变分区包"、"**AB 升级只适用于标准系统**"、"**生成升级包需要在 linux 系统下面执行**"→ **OTA 全流程跨 2 个 OS**；无官方 bootloader；`mcuboot + liteos` 社区先例 **0** | 真缺口（需补课） |
-| **C** | 选型入口缺失 | 官方"已适配芯片总表"页面 **404**；hpm-cli **仍在更新**（1.6.32 / next 1.7.0）且 registry 有 **1319 个组件包**，但站点 OS 版本口径**冻结在 3.2-Beta3**、开发板仅 4 款、下载 Top4 全是 2020–2022 发布 | 真缺口（数据已有，缺入口） |
+| 类别        | 短板        | 硬证据（2026-09-29 核实）                                                                                                                                                                                                                                                           | 修复性质              |
+| --------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **A 入场券** | 宿主/分发     | `prebuilts_download.sh` 仅认 `linux/darwin`，其余 `exit 1`；官方原文"大部分开发板源码不支持 Windows 编译"+"**烧录需要在 Windows 环境中进行**"→ **官方双机架构**；全量源码 6.1 LTS **69.3GB** / 7.0 **57.3GB**，实测检出 **112GB / 505 仓**，而 `kernel_liteos_m` 仅 **12MB**；官方 Docker tag **冻结 3.2**；`ci.openharmony.cn` **502** | 工程/分发问题，可快速补      |
+| **A**     | IDE 工程不可达 | OpenHarmony 全 org `.uvprojx` **0**、`.ewp` **0**（对照 `CMakeLists.txt` 2.8k）；README 原文把 IAR/Keil MDK 编译方式**外包给"社区爱好者贡献的站点"**。**但** arch 层已有 `iar×4`、`keil×2` 实现 + `COMPILER_ICCARM` + `config_iccarm.gni` + `iar_tls` → **缺工程层，不缺编译器支持**                                        | 通路缺口（成本低）         |
+| **A**     | 第一入口停摆    | DevEco Device Tool 最新仍是 **V4.0（2023-09-04）**，**3 年 25 天零新版**（CDN `Last-Modified` 同日）；官方调试页仍写"编译出来的二进制文件**不含调试信息，暂不支持调试能力**"（2024-09-30），且与工具简介页"支持源码级调试"自相矛盾                                                                                                                 | 系统性风险             |
+| **A**     | 无 CLI 烧录  | `hb` 实测 **13 个子命令、无 burn/flash**（全目录零命中）；非 IDE 路径是板厂 **Windows GUI**（HiBurn / HiTool + 手写 XML 分区表）→ **CI 能编不能烧**                                                                                                                                                             | 通路缺口              |
+| **B 通路**  | RTOS 感知为零 | OpenOCD 主线 `rtos_types[]` **13 个 RTOS 无 LiteOS**；`src/rtos/` 无 `liteos.c`（旁证：RTEMS 支持 patch 自 2023-05 挂 NEW **3 年未合入** → 上游日历不可控）                                                                                                                                            | 开墙（1 处内核改动）       |
+| **B**     | 仿真/真机面窄   | `device_qemu` 10 个目标但**须自行编译 qemu-6.2.0、预编译包 0**；真机 mini **2 款**、small **2 款**；`kernel_liteos_m` 门禁 **2 项、真机门禁 0 项**                                                                                                                                                         | 补课 + 开墙           |
+| **B**     | 观测数据围墙    | SystemView / Perfetto / CTF / Tracealyzer **四种标准出口全树零命中**（实为自研 TLV + 串口 pipeline，`LOSCFG_TRACE_TLV_BUF_SIZE=100`）；`perf` 仅 LiteOS-A 且需 **nfs 导出**才能分析                                                                                                                        | 开墙（内核零改动可做）       |
+| **B**     | 测试无编排     | 无编排器，结果靠**串口日志判读**；仓内 CI 定义文件 **0**；**对标对象应是 ESP-IDF 的 pytest 模式而非 Twister**（Twister 深绑 west/CMake/board YAML，经核实不可复用）                                                                                                                                                       | 补课（可白嫖 pytest 生态） |
+| **C 真能力** | OTA 代差    | 官方原文"轻量和小型系统**仅支持全量包升级**，暂不支持差分包、变分区包"、"**AB 升级只适用于标准系统**"、"**生成升级包需要在 linux 系统下面执行**"→ **OTA 全流程跨 2 个 OS**；无官方 bootloader；`mcuboot + liteos` 社区先例 **0**                                                                                                                     | 真缺口（需补课）          |
+| **C**     | 选型入口缺失    | 官方"已适配芯片总表"页面 **404**；hpm-cli **仍在更新**（1.6.32 / next 1.7.0）且 registry 有 **1319 个组件包**，但站点 OS 版本口径**冻结在 3.2-Beta3**、开发板仅 4 款、下载 Top4 全是 2020–2022 发布                                                                                                                          | 真缺口（数据已有，缺入口）     |
 
 **长板（不可丢，是差异化叙事的唯一支撑）**：xTS 兼容性认证库（轻量 **999 产品 / 368 厂商**）· **LMS** 内核级内存消毒（RTOS 阵营唯一）· LiteOS-A `perf`（PMU+callchain）· CPUP/栈水位/trace 事件枚举完备（**采集密度六家最高**）· 官方 **CMSIS-RTOS2** 兼容层 · GN/Ninja 组件化与鸿蒙全系统同构 · 组织级 **Issue 级多仓联合构建** · `xts_device_attest_lite` 设备证明闭环。
 
