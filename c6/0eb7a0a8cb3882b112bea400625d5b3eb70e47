@@ -1,0 +1,41 @@
+Study/工具与能力矩阵.md
+  s_8592f020808276::t_ae164692edd736 1-223
+Study/调研汇总.md
+  s_8592f020808276::t_93ec3f0cfc823b 251-252,254
+  s_8592f020808276::t_cc8b5fb858636b 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "c60eb7a0a8cb3882b112bea400625d5b3eb70e47",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_8592f020808276": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f1a5ce9f5ffeIEwzToM1w5SULQ",
+        "model": "zhipu/glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 228,
+      "total_deletions": 3,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_93ec3f0cfc823b": "zhipu/glm-5.3",
+        "t_ae164692edd736": "zhipu/glm-5.3",
+        "t_cc8b5fb858636b": "zhipu/glm-5.3"
+      },
+      "model_totals": {
+        "zhipu/glm-5.3": {
+          "additions": 228,
+          "deletions": 3
+        }
+      }
+    }
+  }
+}
