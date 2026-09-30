@@ -1,0 +1,222 @@
+diff --git a/BUILD.gn b/BUILD.gn
+index 53b2082..e386ad7 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -23,6 +23,7 @@ static_library("blackbox_lite") {
+   cflags = [ "-Wall" ]
+   deps = []
+   include_dirs = [
++    "//third_party/cmsis/CMSIS/RTOS2/Include",
+     "//base/hiviewdfx/blackbox_lite",
+     "//base/hiviewdfx/blackbox_lite/interfaces/native/kits",
+     "//base/hiviewdfx/hiview_lite",
+diff --git a/blackbox_core.c b/blackbox_core.c
+index b91684c..2dffe6b 100644
+--- a/blackbox_core.c
++++ b/blackbox_core.c
+@@ -16,24 +16,15 @@
+ #include "blackbox.h"
+ #include "blackbox_adapter.h"
+ #include "blackbox_detector.h"
++#include "cmsis_os2.h"
+ #include "ohos_init.h"
+ #include "ohos_types.h"
+-#include "pthread.h"
+ #include "securec.h"
+ #include "utils_list.h"
+ 
+ /******************local macroes*********************/
+ #define LOG_ROOT_DIR_WAIT_TIME  1000
+ #define LOG_ROOT_DIR_WAIT_COUNT 1
+-#ifndef LOS_WAIT_FOREVER
+-#define LOS_WAIT_FOREVER        0xFFFFFFFF
+-#endif
+-#ifndef LOS_NO_WAIT
+-#define LOS_NO_WAIT             0
+-#endif
+-#ifndef LOS_OK
+-#define LOS_OK                  0
+-#endif
+ 
+ /******************local prototypes******************/
+ struct BBoxOps {
+@@ -44,7 +35,7 @@ struct BBoxOps {
+ /******************global functions*******************/
+ /******************local variables*******************/
+ static UTILS_DL_LIST_HEAD(g_opsList);
+-static unsigned int g_opsListSem;
++static osSemaphoreId_t g_opsListSem;
+ 
+ /******************function definitions*******************/
+ static void GetDirName(char *dirBuf, unsigned int dirBufSize, const char *path)
+@@ -104,7 +95,7 @@ static void WaitForLogRootDir(const char *rootDir)
+     }
+     BBOX_PRINT_INFO("wait for log root dir [%s] begin!\n", rootDir);
+     while (i++ < LOG_ROOT_DIR_WAIT_COUNT) {
+-        LOS_Msleep(LOG_ROOT_DIR_WAIT_TIME);
++        osDelay(LOG_ROOT_DIR_WAIT_TIME * osKernelGetTickFreq() / 1000);
+     }
+     BBOX_PRINT_INFO("wait for log root dir [%s] end!\n", rootDir);
+ }
+@@ -140,7 +131,7 @@ static void SaveBasicErrorInfo(const char *filePath, struct ErrorInfo *info)
+         info->module, info->event);
+ }
+ 
+-static void* SaveErrorLog(void *param)
++static void SaveErrorLog(void *param)
+ {
+     (void)param;
+     struct ErrorInfo *info = NULL;
+@@ -150,15 +141,15 @@ static void* SaveErrorLog(void *param)
+     info = malloc(sizeof(*info));
+     if (info == NULL) {
+         BBOX_PRINT_ERR("malloc failed!\n");
+-        return NULL;
++        return;
+     }
+ 
+     GetDirName(dirName, sizeof(dirName), GetFaultLogPath());
+     WaitForLogRootDir(dirName);
+-    if (LOS_SemPend(g_opsListSem, LOS_WAIT_FOREVER) != 0) {
++    if (osSemaphoreAcquire(g_opsListSem, osWaitForever) != osOK) {
+         BBOX_PRINT_ERR("Request g_opsListSem failed!\n");
+         free(info);
+-        return NULL;
++        return;
+     }
+     UTILS_DL_LIST_FOR_EACH_ENTRY(ops, &g_opsList, struct BBoxOps, opsList) {
+         if (ops == NULL) {
+@@ -182,10 +173,8 @@ static void* SaveErrorLog(void *param)
+             }
+         }
+     }
+-    (void)LOS_SemPost(g_opsListSem);
++    (void)osSemaphoreRelease(g_opsListSem);
+     free(info);
+-
+-    return NULL;
+ }
+ 
+ #ifdef BLACKBOX_DEBUG
+@@ -221,7 +210,7 @@ int BBoxRegisterModuleOps(struct ModuleOps *ops)
+     }
+     (void)memset_s(newOps, sizeof(*newOps), 0, sizeof(*newOps));
+     (void)memcpy_s(&newOps->ops, sizeof(newOps->ops), ops, sizeof(*ops));
+-    if (LOS_SemPend(g_opsListSem, LOS_WAIT_FOREVER) != 0) {
++    if (osSemaphoreAcquire(g_opsListSem, osWaitForever) != osOK) {
+         BBOX_PRINT_ERR("Request g_opsListSem failed!\n");
+         free(newOps);
+         return -1;
+@@ -232,7 +221,7 @@ int BBoxRegisterModuleOps(struct ModuleOps *ops)
+     UTILS_DL_LIST_FOR_EACH_ENTRY(temp, &g_opsList, struct BBoxOps, opsList) {
+         if (strcmp(temp->ops.module, ops->module) == 0) {
+             BBOX_PRINT_ERR("[%s] has been registered!\n", ops->module);
+-            (void)LOS_SemPost(g_opsListSem);
++            (void)osSemaphoreRelease(g_opsListSem);
+             free(newOps);
+             return -1;
+         }
+@@ -241,7 +230,7 @@ int BBoxRegisterModuleOps(struct ModuleOps *ops)
+ __out:
+     BBOX_PRINT_INFO("[%s] is registered successfully!\n", ops->module);
+     UtilsListTailInsert(&g_opsList, &newOps->opsList);
+-    (void)LOS_SemPost(g_opsListSem);
++    (void)osSemaphoreRelease(g_opsListSem);
+ #ifdef BLACKBOX_DEBUG
+     PrintModuleOps();
+ #endif
+@@ -268,7 +257,7 @@ int BBoxNotifyError(const char event[EVENT_MAX_LEN],
+     GetDirName(dirName, sizeof(dirName), GetFaultLogPath());
+     if (needSysReset == 0) {
+         WaitForLogRootDir(dirName);
+-        if (LOS_SemPend(g_opsListSem, LOS_NO_WAIT) != 0) {
++        if (osSemaphoreAcquire(g_opsListSem, 0U) != osOK) {
+             BBOX_PRINT_ERR("Request g_opsListSem failed!\n");
+             goto __out;
+         }
+@@ -301,7 +290,7 @@ int BBoxNotifyError(const char event[EVENT_MAX_LEN],
+         break;
+     }
+     if (needSysReset == 0) {
+-        (void)LOS_SemPost(g_opsListSem);
++        (void)osSemaphoreRelease(g_opsListSem);
+     }
+ 
+ __out:
+@@ -317,17 +306,14 @@ __out:
+ 
+ static void BBoxInit(void)
+ {
+-    int ret = -1;
+-    pthread_t taskId = 0;
+-
+-    if (LOS_BinarySemCreate(1, &g_opsListSem) != LOS_OK) {
++    g_opsListSem = osSemaphoreNew(1, 1, NULL);
++    if (g_opsListSem == NULL) {
+         BBOX_PRINT_ERR("Create binary semaphore failed!\n");
+         return;
+     }
+     UtilsListInit(&g_opsList);
+-    ret = pthread_create(&taskId, NULL, SaveErrorLog, NULL);
+-    if (ret != 0) {
+-        BBOX_PRINT_ERR("Falied to create SaveErrorLog task, ret: %d\n", ret);
++    if (osThreadNew(SaveErrorLog, NULL, NULL) == NULL) {
++        BBOX_PRINT_ERR("Failed to create SaveErrorLog task!\n");
+     }
+ }
+ CORE_INIT_PRI(BBoxInit, 1);
+\ No newline at end of file
+diff --git a/bundle.json b/bundle.json
+index f92b544..d81cfec 100644
+--- a/bundle.json
++++ b/bundle.json
+@@ -23,7 +23,9 @@
+                 "utils_lite",
+                 "liteos_m"
+             ],
+-            "third_party": []
++            "third_party": [
++                "cmsis"
++            ]
+         },
+         "build": {
+             "sub_component": [
+@@ -31,4 +33,4 @@
+             ]
+         }
+     }
+-}
++}
+\ No newline at end of file
+diff --git a/interfaces/native/innerkits/blackbox_adapter.h b/interfaces/native/innerkits/blackbox_adapter.h
+index dc228cf..27d2ac6 100644
+--- a/interfaces/native/innerkits/blackbox_adapter.h
++++ b/interfaces/native/innerkits/blackbox_adapter.h
+@@ -38,11 +38,6 @@ extern int FullWriteFile(const char *filePath, const char *buf, unsigned int buf
+ extern char *GetFaultLogPath(void);
+ extern void RebootSystem(void);
+ 
+-/* The following functions have been implemented in the kernel */
+-extern unsigned int LOS_BinarySemCreate(unsigned short count, unsigned int *semHandle);
+-extern unsigned int LOS_SemPend(unsigned int semHandle, unsigned int timeout);
+-extern unsigned int LOS_SemPost(unsigned int semHandle);
+-
+ #ifdef __cplusplus
+ #if __cplusplus
+ }
+diff --git a/interfaces/native/kits/blackbox_adapter.h b/interfaces/native/kits/blackbox_adapter.h
+index dc228cf..27d2ac6 100644
+--- a/interfaces/native/kits/blackbox_adapter.h
++++ b/interfaces/native/kits/blackbox_adapter.h
+@@ -38,11 +38,6 @@ extern int FullWriteFile(const char *filePath, const char *buf, unsigned int buf
+ extern char *GetFaultLogPath(void);
+ extern void RebootSystem(void);
+ 
+-/* The following functions have been implemented in the kernel */
+-extern unsigned int LOS_BinarySemCreate(unsigned short count, unsigned int *semHandle);
+-extern unsigned int LOS_SemPend(unsigned int semHandle, unsigned int timeout);
+-extern unsigned int LOS_SemPost(unsigned int semHandle);
+-
+ #ifdef __cplusplus
+ #if __cplusplus
+ }
