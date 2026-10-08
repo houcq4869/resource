@@ -1028,14 +1028,14 @@ osThreadAttr_t taskAttr = {
 
 ### 15.1 逐接口映射表
 
-| 原接口（LOS/POSIX） | 新接口（CMSIS-RTOS2） | 功能 |
-|---|---|---|
-| `LOS_BinarySemCreate(1, &sem)` | `osSemaphoreNew(1, 1, NULL)` | 创建二元信号量 |
-| `LOS_SemPend(sem, LOS_WAIT_FOREVER)` | `osSemaphoreAcquire(sem, osWaitForever)` | 阻塞拿令牌 |
-| `LOS_SemPend(sem, LOS_NO_WAIT)` | `osSemaphoreAcquire(sem, 0U)` | 非阻塞拿令牌 |
-| `LOS_SemPost(sem)` | `osSemaphoreRelease(sem)` | 还令牌 |
-| `LOS_Msleep(ms)` | `osDelay(ms * osKernelGetTickFreq() / 1000)` | 延时 |
-| `pthread_create(&tid, NULL, fn, NULL)` | `osThreadNew(fn, NULL, &attr)` | 创建线程 |
+| 原接口（LOS/POSIX）                         | 新接口（CMSIS-RTOS2）                             | 功能      |
+| -------------------------------------- | -------------------------------------------- | ------- |
+| `LOS_BinarySemCreate(1, &sem)`         | `osSemaphoreNew(1, 1, NULL)`                 | 创建二元信号量 |
+| `LOS_SemPend(sem, LOS_WAIT_FOREVER)`   | `osSemaphoreAcquire(sem, osWaitForever)`     | 阻塞拿令牌   |
+| `LOS_SemPend(sem, LOS_NO_WAIT)`        | `osSemaphoreAcquire(sem, 0U)`                | 非阻塞拿令牌  |
+| `LOS_SemPost(sem)`                     | `osSemaphoreRelease(sem)`                    | 还令牌     |
+| `LOS_Msleep(ms)`                       | `osDelay(ms * osKernelGetTickFreq() / 1000)` | 延时      |
+| `pthread_create(&tid, NULL, fn, NULL)` | `osThreadNew(fn, NULL, &attr)`               | 创建线程    |
 
 ### 15.2 三大语义差异与处理方式
 
