@@ -1,0 +1,102 @@
+Study/west与Env机制对比与LiteOS借鉴映射.md
+  s_d246502d2245d2::t_ae538467a2c6d3 1-142
+Study/汇报最终版.md
+  s_d246502d2245d2::t_3f664a892d8064 74-113
+Study/west实现机制深度分析.md
+  s_d246502d2245d2::t_683540411d238a 271-284
+  s_d246502d2245d2::t_396524fbd5f944 1-270,285-295
+Study/.omo/run-continuation/ses_ee5baf523ffejGhqCcnKNM9T10.json
+  h_5808ebd0f57f3c 3,6-7
+  h_5808ebd0f57f3c 1-2,4-5,8-10
+Study/调研环境与版本记录.md
+  s_d246502d2245d2::t_0f89e2d9d20183 60,64-76
+  s_d246502d2245d2::t_809b3c4ccbdaf9 1-59,61-63
+Study/Env实现机制深度分析.md
+  s_d246502d2245d2::t_da26efb5b0d8a1 1-217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "ca613ec766553bc69c61e6ca9e690812a9993f97",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_218b01a6b40264": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ee59d70e5ffeVU8e5PrMYouzMf",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 4,
+      "total_deletions": 4,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_79205ff95a2292": "deepseek-v4.1-flash",
+        "t_965c82a43d0121": "deepseek-v4.1-flash"
+      },
+      "model_totals": {
+        "deepseek-v4.1-flash": {
+          "additions": 4,
+          "deletions": 4
+        }
+      }
+    },
+    "s_aa92f546f09cf2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ee59eebc0ffe2svVCiCXHE01Vj",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 2,
+      "total_deletions": 2,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_2333113d4ee49d": "deepseek-v4.1-flash"
+      },
+      "model_totals": {
+        "deepseek-v4.1-flash": {
+          "additions": 2,
+          "deletions": 2
+        }
+      }
+    },
+    "s_d246502d2245d2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ee5baf523ffejGhqCcnKNM9T10",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 801,
+      "total_deletions": 22,
+      "overridden_lines": 2,
+      "model_overridden": {
+        "glm-5.3": 2
+      },
+      "turn_models": {
+        "t_0f89e2d9d20183": "glm-5.3",
+        "t_2355ed71a5fc91": "glm-5.3",
+        "t_396524fbd5f944": "glm-5.3",
+        "t_3f664a892d8064": "glm-5.3",
+        "t_5195290c1ee1f8": "glm-5.3",
+        "t_683540411d238a": "glm-5.3",
+        "t_809b3c4ccbdaf9": "glm-5.3",
+        "t_ae538467a2c6d3": "glm-5.3",
+        "t_da26efb5b0d8a1": "glm-5.3",
+        "t_ed6d2d3080c556": "glm-5.3"
+      },
+      "model_totals": {
+        "glm-5.3": {
+          "additions": 801,
+          "deletions": 22
+        }
+      }
+    }
+  }
+}
