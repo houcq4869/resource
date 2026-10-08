@@ -198,17 +198,17 @@ osThreadAttr_t taskAttr = {
 
 ##### blackbox_core.c
 
-| #   | 位置                  | 原来                                               | 现在                                               | 为什么                                                                                      |
-| --- | ------------------- | ------------------------------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| 1   | :19                 | `#include "pthread.h"`                           | `#include "cmsis_os2.h"`                         | 专项要求 mini 组件统一 CMSIS；pthread 头不再需要                                                       |
-| 2   | :26-28              | 局部定义 LOS_WAIT_FOREVER/NO_WAIT/OK 兜底宏             | 删除，改用 CMSIS 标准常量；新增 BLACKBOX_TASK_STACK_SIZE     | 兜底宏是内核常量复制品，随 LOS 接口一并退场；栈大小宏供线程属性使用                                                     |
-| 3   | :39                 | `static unsigned int g_opsListSem`               | `static osSemaphoreId_t g_opsListSem`            | 句柄类型跟随新接口体系                                                                              |
-| 4   | :99                 | `LOS_Msleep(1000)`                               | `osDelay(1000 * osKernelGetTickFreq() / 1000)`   | 单位差异：ms → tick，按内核频率现场换算，两种频率内核下都精确延时 1000ms                                             |
-| 5   | :150 / :214         | `LOS_SemPend(sem, LOS_WAIT_FOREVER) != 0`（2 处）   | `osSemaphoreAcquire(sem, osWaitForever) != osOK` | 阻塞等待等价替换；osWaitForever 与旧宏数值相同                                                           |
-| 6   | :261                | `LOS_SemPend(sem, LOS_NO_WAIT) != 0`             | `osSemaphoreAcquire(sem, 0U) != osOK`            | 非阻塞等价替换：0 超时即非阻塞                                                                         |
-| 7   | :177/:225/:234/:294 | `LOS_SemPost(sem)`（4 处）                          | `osSemaphoreRelease(sem)`                        | V 操作等价替换；4 处均有 Acquire 前置                                                                |
-| 8   | :314                | `LOS_BinarySemCreate(1, &sem) != LOS_OK`         | `sem = osSemaphoreNew(1, 1, NULL); 判 NULL`       | 二元信号量创建；max=1 底层即 LOS_BinarySemCreate；判定风格随返回值式句柄调整                                      |
-| 9   | :320                | `pthread_create(&tid, NULL, SaveErrorLog, NULL)` | `osThreadNew(SaveErrorLog, NULL, &taskAttr)`     | 线程创建等价替换；SaveErrorLog 签名 void*→void 匹配 osThreadFunc_t；属性显式化（名/栈 0x1000/osPriorityNormal） |
+| #   | 位置                  | 原接口                                                    | 新接口                                                                       | 接口说明         | 修改方案                                                                                        |
+| --- | ------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------- |
+| 1   | :19                 | `#include "pthread.h"`                                 | `#include "cmsis_os2.h"`                                                  | POSIX线程头文件引入 | 头文件替换，pthread.h -> cmsis_os2.h                                                              |
+| 2   | :26-28              | LOS_WAIT_FOREVER=0xFFFFFFFF / LOS_NO_WAIT=0 / LOS_OK=0 | osWaitForever / 0U / osOK                                                 | 内核常量复制定义     | 删除 LOS_WAIT_FOREVER / LOS_NO_WAIT / LOS_OK                                                  |
+| 3   | :39                 | `static unsigned int g_opsListSem`                     | `static osSemaphoreId_t g_opsListSem`                                     | 信号量句柄类型      | 句柄类型改为CMSIS句柄，unsigned int -> osSemaphoreId_t                                               |
+| 4   | :99                 | `LOS_Msleep(LOG_ROOT_DIR_WAIT_TIME)`                   | `osDelay(LOG_ROOT_DIR_WAIT_TIME * osKernelGetTickFreq() / MS_PER_SECOND)` | 毫秒级任务延时      | 原LOS_Msleep参数为毫秒，osDelay参数为tick数，需要按osKernelGetTickFreq()换算，即tick = 毫秒 * 频率 / MS_PER_SECOND |
+| 5   | :150 / :214         | `LOS_SemPend(sem, LOS_WAIT_FOREVER) != 0`（2 处）         | `osSemaphoreAcquire(sem, osWaitForever) != osOK`                          | 阻塞等待信号量      |                                                                                             |
+| 6   | :261                | `LOS_SemPend(sem, LOS_NO_WAIT) != 0`                   | `osSemaphoreAcquire(sem, 0U) != osOK`                                     | 非阻塞等待信号量     |                                                                                             |
+| 7   | :177/:225/:234/:294 | `LOS_SemPost(sem)`（4 处）                                | `osSemaphoreRelease(sem)`                                                 | 释放信号量        |                                                                                             |
+| 8   | :314                | `LOS_BinarySemCreate(1, &sem) != LOS_OK`               | `sem = osSemaphoreNew(1, 1, NULL); 判 NULL`                                | 二元信号量创建      |                                                                                             |
+| 9   | :320                | `pthread_create(&tid, NULL, SaveErrorLog, NULL)`       | `osThreadNew(SaveErrorLog, NULL, NULL) == NULL`                           | 后台故障日志保存线程创建 |                                                                                             |
 
 
 ##### 公开头与构建
