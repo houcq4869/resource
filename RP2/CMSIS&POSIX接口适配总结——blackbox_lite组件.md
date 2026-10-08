@@ -1,7 +1,9 @@
 
 ### 需求背景
 
-OpenHarmony解决方案为支持多内核需求，切换内核不影响上层服务&框架功能，需要上层部件统一适配CMSIS&POSIX接口，替代使用操作系统原生接口（比如LOS_xx）。排查中发现blackbox_lite组件使用了LiteOS-M原生接口及pthread接口，需要替换成CMSIS-RTOS2标准接口
+**OpenHarmony解决方案为支持多内核需求，切换内核不影响上层服务&框架功能，需要上层部件统一适配CMSIS&POSIX接口，替代使用操作系统原生接口（比如LOS_xx）。**
+
+**blackbox_lite组件**使用了LiteOS-M原生接口及pthread接口，需要替换成CMSIS-RTOS2标准接口
 
 #### blackbox_lite组件介绍
 
@@ -106,7 +108,7 @@ osSemaphoreId_t osSemaphoreNew(uint32_t max_count, uint32_t initial_count,
 树内核 LiteOS-M 的实现里，`max_count == 1` 时内部就是调用 `LOS_BinarySemCreate`
 （`kernel/liteos_m/kal/cmsis/cmsis_liteos2.c:1120`），所以底层是同一个东西。
 
-##### `osSemaphoreAcquire` —— P 操作（拿令牌）
+##### `osSemaphoreAcquire` —— P 操作
 
 ```c
 osStatus_t osSemaphoreAcquire(osSemaphoreId_t semaphore_id, uint32_t timeout);
@@ -127,7 +129,7 @@ osStatus_t osSemaphoreAcquire(osSemaphoreId_t semaphore_id, uint32_t timeout);
 
 
 
-##### `osSemaphoreRelease` —— V 操作（还令牌）
+##### `osSemaphoreRelease` —— V 操作
 
 ```c
 osStatus_t osSemaphoreRelease(osSemaphoreId_t semaphore_id);
