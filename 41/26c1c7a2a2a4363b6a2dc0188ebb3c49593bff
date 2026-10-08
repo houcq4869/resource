@@ -1,0 +1,36 @@
+Study/west与Env深度调研计划.md
+  s_d246502d2245d2::t_4165c3a9756857 1-137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "4126c1c7a2a2a4363b6a2dc0188ebb3c49593bff",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_d246502d2245d2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ee5baf523ffejGhqCcnKNM9T10",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 137,
+      "total_deletions": 0,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_4165c3a9756857": "glm-5.3"
+      },
+      "model_totals": {
+        "glm-5.3": {
+          "additions": 137,
+          "deletions": 0
+        }
+      }
+    }
+  }
+}
