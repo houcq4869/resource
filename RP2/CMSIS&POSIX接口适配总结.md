@@ -3,9 +3,7 @@
 
 OpenHarmony解决方案为支持多内核需求，切换内核不影响上层服务&框架功能，需要上层部件统一适配CMSIS&POSIX接口，替代使用操作系统原生接口（比如LOS_xx）。排查中发现blackbox_lite组件使用了LiteOS-M原生接口及pthread接口，需要替换成CMSIS-RTOS2标准接口
 
-### blackbox_lite
-
-#### 组件介绍
+#### blackbox_lite组件介绍
 
 **黑盒组件**（blackbox）类似黑匣子：
 
@@ -21,9 +19,53 @@ OpenHarmony解决方案为支持多内核需求，切换内核不影响上层服
 | 掉电 / 异常关机          | 保存最后痕迹                              |
 | 某个业务模块检测到自身异常      | 调用黑盒接口记录事件，按需触发模块自检（Dump）或重启（Reset） |
 
-**具体组件代码介绍见文末**
+**具体组件代码介绍见文末[[CMSIS&POSIX接口适配总结#附录：组件分析]]**
 
 ### 适配分析
+
+#### LiteOS 接口
+
+`LOS_BinarySemCreate` —— 创建二元信号量
+
+
+
+`LOS_SemPend` —— P 操作
+
+
+
+`LOS_SemPost` —— V 操作
+
+
+
+`LOS_Msleep` —— 毫秒延时
+
+
+
+
+#### CMSIS-RTOS2 接口
+
+`osSemaphoreId_t` —— 信号量句柄类型
+```c
+typedef struct os_semaphore_def *osSemaphoreId_t;   /* 本质是指针 */
+```
+
+
+`osSemaphoreNew` —— 创建信号量
+```c
+osSemaphoreId_t osSemaphoreNew(uint32_t max_count, uint32_t initial_count,
+                               const osSemaphoreAttr_t *attr);
+```
+
+`osSemaphoreAcquire` —— P 操作（拿令牌）
+
+
+
+`osSemaphoreRelease` —— V 操作（还令牌）
+
+`osDelay` 与 `osKernelGetTickFreq`
+
+
+`osThreadNew` —— 创建线程
 
 
 
@@ -43,3 +85,7 @@ OpenHarmony解决方案为支持多内核需求，切换内核不影响上层服
 - LiteOS 基础头：`los_base.h`（LOS_NO_WAIT:84、LOS_WAIT_FOREVER:90、LOS_Msleep:287）
 
 ### 结论
+
+
+
+### 附录：组件分析
