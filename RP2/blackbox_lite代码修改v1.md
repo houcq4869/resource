@@ -1018,11 +1018,11 @@ osThreadAttr_t taskAttr = {
 
 ### 14.7 常用常量速查
 
-| 常量 | 值 | 含义 |
-|---|---|---|
-| `osOK` | 0 | 操作成功（判错写法 `!= osOK` 等价旧写法 `!= 0`） |
-| `osWaitForever` | 0xFFFFFFFFU | 永久阻塞等待 |
-| `osPriorityNormal` | 24 | 普通任务优先级 |
+| 常量                 | 值           | 含义                                |
+| ------------------ | ----------- | --------------------------------- |
+| `osOK`             | 0           | 操作成功（判错写法 `!= osOK` 等价旧写法 `!= 0`） |
+| `osWaitForever`    | 0xFFFFFFFFU | 永久阻塞等待                            |
+| `osPriorityNormal` | 24          | 普通任务优先级                           |
 
 ## 15. 对照总表与语义差异清单
 
@@ -1058,26 +1058,26 @@ CMSIS 接口 = 返回值句柄 + tick + 标准状态枚举。差异就三处，�
 
 ### 16.1 blackbox_core.c（9 处）
 
-| # | 位置 | 原来 | 现在 | 为什么 |
-|---|---|---|---|---|
-| 1 | :19 | `#include "pthread.h"` | `#include "cmsis_os2.h"` | 专项要求 mini 组件统一 CMSIS；pthread 头不再需要 |
-| 2 | :26-28 | 局部定义 LOS_WAIT_FOREVER/NO_WAIT/OK 兜底宏 | 删除，改用 CMSIS 标准常量；新增 BLACKBOX_TASK_STACK_SIZE | 兜底宏是内核常量复制品，随 LOS 接口一并退场；栈大小宏供线程属性使用 |
-| 3 | :39 | `static unsigned int g_opsListSem` | `static osSemaphoreId_t g_opsListSem` | 句柄类型跟随新接口体系 |
-| 4 | :99 | `LOS_Msleep(1000)` | `osDelay(1000 * osKernelGetTickFreq() / 1000)` | 单位差异：ms → tick，按内核频率现场换算，两种频率内核下都精确延时 1000ms |
-| 5 | :150 / :214 | `LOS_SemPend(sem, LOS_WAIT_FOREVER) != 0`（2 处） | `osSemaphoreAcquire(sem, osWaitForever) != osOK` | 阻塞等待等价替换；osWaitForever 与旧宏数值相同 |
-| 6 | :261 | `LOS_SemPend(sem, LOS_NO_WAIT) != 0` | `osSemaphoreAcquire(sem, 0U) != osOK` | 非阻塞等价替换：0 超时即非阻塞 |
-| 7 | :177/:225/:234/:294 | `LOS_SemPost(sem)`（4 处） | `osSemaphoreRelease(sem)` | V 操作等价替换；4 处均有 Acquire 前置 |
-| 8 | :314 | `LOS_BinarySemCreate(1, &sem) != LOS_OK` | `sem = osSemaphoreNew(1, 1, NULL); 判 NULL` | 二元信号量创建；max=1 底层即 LOS_BinarySemCreate；判定风格随返回值式句柄调整 |
-| 9 | :320 | `pthread_create(&tid, NULL, SaveErrorLog, NULL)` | `osThreadNew(SaveErrorLog, NULL, &taskAttr)` | 线程创建等价替换；SaveErrorLog 签名 void*→void 匹配 osThreadFunc_t；属性显式化（名/栈 0x1000/osPriorityNormal） |
+| #   | 位置                  | 原来                                               | 现在                                               | 为什么                                                                                      |
+| --- | ------------------- | ------------------------------------------------ | ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| 1   | :19                 | `#include "pthread.h"`                           | `#include "cmsis_os2.h"`                         | 专项要求 mini 组件统一 CMSIS；pthread 头不再需要                                                       |
+| 2   | :26-28              | 局部定义 LOS_WAIT_FOREVER/NO_WAIT/OK 兜底宏             | 删除，改用 CMSIS 标准常量；新增 BLACKBOX_TASK_STACK_SIZE     | 兜底宏是内核常量复制品，随 LOS 接口一并退场；栈大小宏供线程属性使用                                                     |
+| 3   | :39                 | `static unsigned int g_opsListSem`               | `static osSemaphoreId_t g_opsListSem`            | 句柄类型跟随新接口体系                                                                              |
+| 4   | :99                 | `LOS_Msleep(1000)`                               | `osDelay(1000 * osKernelGetTickFreq() / 1000)`   | 单位差异：ms → tick，按内核频率现场换算，两种频率内核下都精确延时 1000ms                                             |
+| 5   | :150 / :214         | `LOS_SemPend(sem, LOS_WAIT_FOREVER) != 0`（2 处）   | `osSemaphoreAcquire(sem, osWaitForever) != osOK` | 阻塞等待等价替换；osWaitForever 与旧宏数值相同                                                           |
+| 6   | :261                | `LOS_SemPend(sem, LOS_NO_WAIT) != 0`             | `osSemaphoreAcquire(sem, 0U) != osOK`            | 非阻塞等价替换：0 超时即非阻塞                                                                         |
+| 7   | :177/:225/:234/:294 | `LOS_SemPost(sem)`（4 处）                          | `osSemaphoreRelease(sem)`                        | V 操作等价替换；4 处均有 Acquire 前置                                                                |
+| 8   | :314                | `LOS_BinarySemCreate(1, &sem) != LOS_OK`         | `sem = osSemaphoreNew(1, 1, NULL); 判 NULL`       | 二元信号量创建；max=1 底层即 LOS_BinarySemCreate；判定风格随返回值式句柄调整                                      |
+| 9   | :320                | `pthread_create(&tid, NULL, SaveErrorLog, NULL)` | `osThreadNew(SaveErrorLog, NULL, &taskAttr)`     | 线程创建等价替换；SaveErrorLog 签名 void*→void 匹配 osThreadFunc_t；属性显式化（名/栈 0x1000/osPriorityNormal） |
 
 ### 16.2 公开头与构建（4 处）
 
-| # | 位置 | 原来 | 现在 | 为什么 |
-|---|---|---|---|---|
-| 10 | kits/blackbox_adapter.h | 3 行 LOS_ 内核函数 extern 声明 | 删除 | 公开头只应声明组件自己的 API，内核声明属于接口污染 |
-| 11 | innerkits/blackbox_adapter.h | 同上 | 删除（与 kits 副本同步） | 两份头文件保持一致 |
-| 12 | BUILD.gn :26 | 无 cmsis 头文件路径 | include_dirs 首位新增 `//third_party/cmsis/CMSIS/RTOS2/Include` | 提供 cmsis_os2.h 搜索路径；放首位保证优先命中；不 dep 树内核（预编译内核产品会被误拉入） |
-| 13 | bundle.json :26-27 | `"third_party": []` | `"third_party": ["cmsis"]` | 依赖元数据补全，纯声明无编译影响 |
+| #   | 位置                           | 原来                      | 现在                                                          | 为什么                                                   |
+| --- | ---------------------------- | ----------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| 10  | kits/blackbox_adapter.h      | 3 行 LOS_ 内核函数 extern 声明 | 删除                                                          | 公开头只应声明组件自己的 API，内核声明属于接口污染                           |
+| 11  | innerkits/blackbox_adapter.h | 同上                      | 删除（与 kits 副本同步）                                             | 两份头文件保持一致                                             |
+| 12  | BUILD.gn :26                 | 无 cmsis 头文件路径           | include_dirs 首位新增 `//third_party/cmsis/CMSIS/RTOS2/Include` | 提供 cmsis_os2.h 搜索路径；放首位保证优先命中；不 dep 树内核（预编译内核产品会被误拉入） |
+| 13  | bundle.json :26-27           | `"third_party": []`     | `"third_party": ["cmsis"]`                                  | 依赖元数据补全，纯声明无编译影响                                      |
 
 ## 17. 行为等价性论证（白话版，5 条）
 
