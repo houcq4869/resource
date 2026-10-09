@@ -137,3 +137,240 @@ class WestCommand:                # 所有命令（内置+扩展）的基类
         for hook in self.hooks: hook(self)       # 延迟的警告/错误在这里吐
         self.do_run(args)                        # ← 每个命令真正的逻辑
 ```
+
+
+#### main.py
+
+`BUILTIN_COMMAND_GROUPS`（:1204-1225，全部命令的注册表）
+
+~~~python
+BUILTIN_COMMAND_GROUPS = {
+    'built-in commands for managing git repositories': [
+        Init,
+        Update,
+        List,
+        ManifestCommand,
+        Compare,
+        Diff,
+        Status,
+        ForAll,
+        Grep,
+    ],
+
+    'other built-in commands': [
+        Help,
+        Config,
+        Topdir,
+    ],
+
+    # None is for hidden commands we don't want to show to the user.
+    None: [SelfUpdate]
+}
+~~~
+
+
+`WestApp.run`（:235-278，主流程）
+
+```python
+	def run(self, argv):
+        # Run the command-line application with argument list 'argv'.
+
+        early_args = parse_early_args(argv)
+
+        # Silence validation errors from pykwalify, which are logged at
+        # logging.ERROR level. We want to handle those ourselves as
+        # needed.
+        logging.getLogger('pykwalify').setLevel(logging.CRITICAL)
+
+        # Use verbosity to determine west API log levels
+        self.setup_west_logging(early_args.verbosity)
+
+        # Makes ANSI color escapes work on Windows, and strips them when
+        # stdout/stderr isn't a terminal
+        colorama.init()
+
+        # See if we're in a workspace. It's fine if we're not.
+        # Note that this falls back on searching from ZEPHYR_BASE
+        # if the current directory isn't inside a west workspace.
+        try:
+            self.topdir = west_topdir()
+        except WestNotFound:
+            pass
+
+        # Read the configuration files. We need this to get
+        # manifest.path to parse the manifest, etc.
+        self.config = west.configuration.Configuration(topdir=self.topdir)
+
+        # Also set up the global configuration object to match, for
+        # backwards compatibility.
+        self.config._copy_to_configparser(west.configuration.config)
+
+        # Set self.manifest and self.extensions.
+        self.load_manifest()
+        self.load_extension_specs()
+        self.load_aliases()
+
+        # Set up initial argument parsers. This requires knowing
+        # self.extensions, so it can't happen before now.
+        self.setup_parsers()
+
+        # OK, we are all set. Run the command.
+        self.run_command(argv, early_args)
+```
+
+`run_command`（:534-641）
+
+```python
+    def run_command(self, argv, early_args):
+        # Parse command line arguments and run the WestCommand.
+        # If we're running an extension, instantiate it from its
+        # spec and re-parse arguments before running.
+
+        if not early_args.help and early_args.command_name != "help":
+            # Recursively replace alias command(s) if set
+            aliases = self.aliases.copy()
+            while early_args.command_name in aliases:
+                # Make sure we don't end up in an infinite loop
+                alias = aliases.pop(early_args.command_name)
+
+                self.queued_io.append(lambda cmd, alias=alias: cmd.dbg(
+                    f'Replacing alias {alias.name} with {alias.args}'
+                ))
+
+                if len(alias.args) == 0:
+                    # This loses the cmd.dbg() above - too bad, don't use empty aliases
+                    self.print_usage_and_exit(f'west: empty alias "{alias.name}"')
+
+                # Find and replace the command name. Must skip any other early args like -v
+                for i, arg in enumerate(argv):
+                    if arg == early_args.command_name:
+                        argv = argv[:i] + alias.args + argv[i + 1:]
+                        break
+                early_args = early_args._replace(command_name=alias.args[0])
+
+        self.handle_early_arg_errors(early_args)
+        args, unknown = self.west_parser.parse_known_args(args=argv)
+
+        # Set up logging verbosity before running the command, for
+        # backwards compatibility. Remove this when we can part ways
+        # with the log module.
+        log.set_verbosity(args.verbose - args.quiet)
+
+        # If we were run as 'west -h ...' or 'west --help ...',
+        # monkeypatch the args namespace so we end up running Help.  The
+        # user might have also provided a command. If so, print help about
+        # that command.
+        if args.help or args.command is None:
+            args.command_name = args.command
+            args.command = 'help'
+
+        # Finally, run the command.
+        try:
+            # Both run_builtin() and run_extension() set self.cmd so
+            # we can use it in the exception handling blocks below.
+            if args.command in self.builtins:
+                self.run_builtin(args, unknown)
+            else:
+                self.run_extension(args.command, argv)
+        except KeyboardInterrupt:
+            # Catching this avoids dumping stack.
+            #
+            # Here we replicate CPython's behavior in exit_sigint() in
+            # Modules/main.c (as of
+            # 2f62a5da949cd368a9498e6a03e700f4629fa97f), but in pure
+            # Python since it's not clear how or if we can call that
+            # directly from here.
+            #
+            # For more discussion on this behavior, see:
+            #
+            # https://bugs.python.org/issue1054041
+            if platform.system() == 'Windows':
+                # The hex number is a standard value (STATUS_CONTROL_C_EXIT):
+                # https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+                #
+                # Subtracting 2**32 seems to be the convention for
+                # making it fit in an int32_t.
+                CONTROL_C_EXIT_CODE = 0xC000013A - 2**32
+                sys.exit(CONTROL_C_EXIT_CODE)
+            else:
+                # On Unix, just reinstate the default SIGINT handler
+                # and send the signal again, overriding the CPython
+                # KeyboardInterrupt stack dump.
+                #
+                # In addition to exiting with the correct "dying due
+                # to SIGINT" status code (usually 130), this signals
+                # to the calling environment that we were interrupted,
+                # so that e.g. "while true; do west ... ; done" will
+                # exit out of the entire while loop and not just
+                # the west command.
+                signal.signal(signal.SIGINT, signal.SIG_DFL)
+                os.kill(os.getpid(), signal.SIGINT)
+        except BrokenPipeError:
+            sys.exit(0)
+        except CalledProcessError as cpe:
+            self.cmd.err(f'command exited with status {cpe.returncode}: '
+                         f'{quote_sh_list(cpe.cmd)}', fatal=True)
+            if self.cmd.verbosity >= Verbosity.DBG_EXTREME:
+                self.cmd.banner('Traceback (enabled by -vvv):')
+                traceback.print_exc()
+            sys.exit(cpe.returncode)
+        except ExtensionCommandError as ece:
+            self.handle_extension_command_error(ece)
+        except CommandError as ce:
+            # No need to dump_traceback() here. The command is responsible
+            # for logging its own errors.
+            sys.exit(ce.returncode)
+        except MalformedManifest as mm:
+            # We can get here because 'west update' is allowed to run
+            # even when an invalid manifest was detected, as a way to
+            # try to fix a previous update that left 'manifest-rev'
+            # branches pointing at revisions with invalid manifest
+            # data in projects that get imported.
+            self.cmd.die('\n  '.join(str(arg) for arg in mm.args))
+        except WestNotFound as wnf:
+            self.cmd.die(str(wnf))
+```
+
+
+#### commands.py
+
+`WestCommand.run`（:171-200）
+
+```python
+    def run(self, args: argparse.Namespace, unknown: list[str],
+            topdir: PathType,
+            manifest: Optional[Manifest] = None,
+            config: Optional[Configuration] = None) -> None:
+        '''Run the command.
+
+        This raises `west.commands.CommandContextError` if the command
+        cannot be run due to a context mismatch. Other exceptions may
+        be raised as well.
+
+        :param args: known arguments parsed via `WestCommand.add_parser`
+        :param unknown: unknown arguments present on the command line;
+            must be empty unless ``accepts_unknown_args`` is true
+        :param topdir: west workspace topdir, accessible as a str via
+            ``self.topdir`` from `WestCommand.do_run`
+        :param manifest: `west.manifest.Manifest` or ``None``,
+            accessible as ``self.manifest`` from `WestCommand.do_run`
+        :param config: `west.configuration.Configuration` or ``None``,
+            accessible as ``self.config`` from `WestCommand.do_run`
+        '''
+        self.config = config
+        if unknown and not self.accepts_unknown_args:
+            self.parser.error(f'unexpected arguments: {unknown}')
+        if not topdir and self.requires_workspace:
+            self.die(_no_topdir_msg(os.getcwd(), self.name))
+        self.topdir = os.fspath(topdir) if topdir else None
+        self.manifest = manifest
+        for hook in self._hooks:
+            hook(self)
+        self.do_run(args, unknown)
+```
+
+
+#### project.py
+
+`Topdir.do_run`（:2102-2103)
+
