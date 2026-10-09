@@ -65,6 +65,24 @@ Zephyr 项目开发一般使用west进行项目构建和管理，west的作用�
 - west completion — shell 补全脚本
 - west gtags — 生成 GNU global 标签
 
-West v1.4.0 源码深度解析
 
-典型工作流：west update → west boards → west build -b <board> → west flash → west debug。
+
+典型工作流：west update → west boards → west build -b （board）> → west flash → west debug。
+
+
+## West v1.4.0 源码深度解析
+
+
+west (console script)
+ └─ src/west/__main__.py → main()                    
+     └─ WestApp.run(argv)                         
+         ├─ ① parse_early_args(argv)                 # 手写解析 -h/-V/-v/-q/-z 和命令名
+         ├─ ② setup_west_logging / colorama.init()
+         ├─ ③ west_topdir()                          # util.py 向上找 .west 目录
+         ├─ ④ Configuration(topdir)                  # 三层配置
+         ├─ ⑤ load_manifest()                        # 失败不崩溃，存入 self.mle 延迟处理
+         ├─ ⑥ load_extension_specs()                 # 扫描 west-commands.yml
+         ├─ ⑦ load_aliases()                         # alias.* 配置
+         ├─ ⑧ setup_parsers()                        # argparse + 扩展桩解析器
+         └─ ⑨ run_command()                          # 别名展开 → 分发 → 异常兜底
+

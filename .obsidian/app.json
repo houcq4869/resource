@@ -3,7 +3,7 @@
   "alwaysUpdateLinks": true,
   "readableLineLength": false,
   "attachmentFolderPath": "./attachments",
-  "showUnsupportedFiles": false,
+  "showUnsupportedFiles": true,
   "showLineNumber": false,
   "showIndentGuide": true,
   "rightToLeft": false,
