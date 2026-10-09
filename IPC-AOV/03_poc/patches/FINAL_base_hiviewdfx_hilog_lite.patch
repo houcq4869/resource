@@ -1,0 +1,15 @@
+diff --git a/bundle.json b/bundle.json
+index 70cd35f..959cac8 100644
+--- a/bundle.json
++++ b/bundle.json
+@@ -61,9 +61,7 @@
+                 "//base/hiviewdfx/hilog_lite/frameworks/mini:hilog_lite",
+                 "//base/hiviewdfx/hilog_lite/frameworks/featured:hilog_static",
+                 "//base/hiviewdfx/hilog_lite/frameworks/featured:hilog_shared",
+-                "//base/hiviewdfx/hilog_lite/services/apphilogcat:apphilogcat",
+-                "//base/hiviewdfx/hilog_lite/frameworks/js:ace_hilog_kits",
+-                "//base/hiviewdfx/hilog_lite/test:hilog_lite_test"
++                "//base/hiviewdfx/hilog_lite/services/apphilogcat:apphilogcat"
+             ],
+             "inner_kits": [
+                 {

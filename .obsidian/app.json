@@ -1,5 +1,11 @@
 {
   "promptDelete": false,
   "alwaysUpdateLinks": true,
-  "readableLineLength": false
+  "readableLineLength": false,
+  "attachmentFolderPath": "./attachments",
+  "showUnsupportedFiles": true,
+  "showLineNumber": true,
+  "showIndentGuide": true,
+  "rightToLeft": false,
+  "vimMode": false
 }
