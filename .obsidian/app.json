@@ -3,13 +3,15 @@
   "alwaysUpdateLinks": true,
   "readableLineLength": false,
   "attachmentFolderPath": "./attachments",
-  "showUnsupportedFiles": true,
-  "showLineNumber": true,
+  "showUnsupportedFiles": false,
+  "showLineNumber": false,
   "showIndentGuide": true,
   "rightToLeft": false,
   "vimMode": false,
   "newLinkFormat": "shortest",
   "livePreview": true,
   "defaultViewMode": "source",
-  "useMarkdownLinks": false
+  "useMarkdownLinks": false,
+  "showInlineTitle": true,
+  "settingsPopoutWindow": true
 }

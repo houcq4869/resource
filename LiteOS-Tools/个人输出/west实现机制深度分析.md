@@ -65,4 +65,6 @@ Zephyr 项目开发一般使用west进行项目构建和管理，west的作用�
 - west completion — shell 补全脚本
 - west gtags — 生成 GNU global 标签
 
+West v1.4.0 源码深度解析
+
 典型工作流：west update → west boards → west build -b <board> → west flash → west debug。
