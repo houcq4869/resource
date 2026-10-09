@@ -1,6 +1,6 @@
 ## zephyr&west介绍
 
-Zephyr 采用 多仓库结构，通过 west 工具统一管理。除了主仓库，还有：
+Zephyr 采用多仓库结构，通过 west 工具统一管理。除了主仓库，还有：
 - hal_xxx：各芯片厂商的硬件抽象层（HAL）。
 - mcuboot：默认的安全 Bootloader。
 - modules/：第三方库（如 mbedTLS、LVGL、zcbor 等）。
