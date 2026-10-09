@@ -1,4 +1,3 @@
-
 ## zephyr&west介绍
 
 Zephyr 采用 多仓库结构，通过 west 工具统一管理。除了主仓库，还有：
@@ -32,6 +31,7 @@ Zephyr 项目开发一般使用west进行项目构建和管理，west的作用�
 	help、config（分层配置管理：system/user/workspace）、topdir、self-update（隐藏命令，自更新 west）
 
 #### 核心能力
+
 - manifest 机制：west.yml 声式描述整个 Zephyr 多仓库结构（支持 import、groups、filter、blob、allowlist/blocklist）
 - 扩展机制：任意项目可注册 west-commands.yml 注入自定义命令
 - Python API：west.manifest、west.configuration 可作为库使用

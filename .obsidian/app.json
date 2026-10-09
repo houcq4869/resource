@@ -4,7 +4,7 @@
   "readableLineLength": false,
   "attachmentFolderPath": "./attachments",
   "showUnsupportedFiles": true,
-  "showLineNumber": false,
+  "showLineNumber": true,
   "showIndentGuide": true,
   "rightToLeft": false,
   "vimMode": false,
