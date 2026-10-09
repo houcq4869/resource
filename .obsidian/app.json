@@ -10,5 +10,6 @@
   "vimMode": false,
   "newLinkFormat": "shortest",
   "livePreview": true,
-  "defaultViewMode": "source"
+  "defaultViewMode": "source",
+  "useMarkdownLinks": false
 }
