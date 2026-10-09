@@ -19,14 +19,14 @@
 
 ### 1.2 模块地图（`west/src/west/`）
 
-| 模块 | 职责 |
-|---|---|
-| `util.py` | `.west` 目录发现（`west_topdir` 向上遍历）、路径穿越检查 `escapes_directory()` |
-| `configuration.py` | 三层配置（见 §五），configparser INI 实现 |
-| `manifest.py`（2784 行） | west.yml 解析/校验/import 递归解析、`Project`/`ManifestProject` |
-| `commands.py` | `WestCommand` 基类 + **扩展命令发现/加载**（见 §三） |
-| `app/main.py` | CLI 应用 `WestApp`：入口分发、内建注册、帮助系统 |
-| `app/project.py` | `Init`/`Update` 等多仓命令的 git 操作实现 |
+| 模块                    | 职责                                                            |
+| --------------------- | ------------------------------------------------------------- |
+| `util.py`             | `.west` 目录发现（`west_topdir` 向上遍历）、路径穿越检查 `escapes_directory()` |
+| `configuration.py`    | 三层配置（见 §五），configparser INI 实现                                |
+| `manifest.py`（2784 行） | west.yml 解析/校验/import 递归解析、`Project`/`ManifestProject`        |
+| `commands.py`         | `WestCommand` 基类 + **扩展命令发现/加载**（见 §三）                        |
+| `app/main.py`         | CLI 应用 `WestApp`：入口分发、内建注册、帮助系统                               |
+| `app/project.py`      | `Init`/`Update` 等多仓命令的 git 操作实现                               |
 
 ### 1.3 启动分发流程（`app/main.py`）
 
