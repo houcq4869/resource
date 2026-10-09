@@ -86,3 +86,54 @@ west (console script)
          ├─ ⑧ setup_parsers()                        # argparse + 扩展桩解析器
          └─ ⑨ run_command()                          # 别名展开 → 分发 → 异常兜底
 
+
+
+```python
+# ============ 入口（main.py 1228 行的真实内容）============
+def main():
+    topdir    = 向上找 .west 目录()            # util.west_topdir，86 行小函数
+    config    = 读三级配置文件(topdir)          # configuration.py
+    manifest  = 解析 west.yml()                 # manifest.py ★大脑
+    extensions = 扫描 west-commands.yml()       # 只登记名字，不加载模块！
+    command   = 解析命令行()
+
+    if command 在内置表里:
+        内置表[command].run(topdir, manifest, config)
+    else:
+        extensions[command].加载模块并run(...)   # 此刻才 import
+
+# ============ manifest.py 2784 行的真实内容 ============
+def 解析 west.yml():
+    数据 = yaml.safe_load(文件)
+    pykwalify校验(数据, schema文件)             # 报错全是 MalformedManifest
+    ctx = Ctx(projects={})                      # ★ 全局唯一的项目登记表
+
+    解析本文件(数据, ctx)                        # 逐条 projects: 变成 Project
+    处理 self: import:(数据, ctx)               # 递归 ↓
+    处理 各项目的 import:(..., ctx)             # 递归 ↓
+
+def 处理 import(子清单数据, ctx):
+    child = ctx._replace(path_prefix=前缀拼接)   # 标量字段换新的一层
+    解析 west.yml(子清单数据, child)             # ★ 递归调用！但 projects
+                                                #   dict 还是同一个对象
+def 解析本文件(数据, ctx):
+    for 每个项目 in 数据['projects']:
+        if 项目.name not in ctx.projects:       # ★ 先到先得
+            ctx.projects[name] = 算url算path(项目)
+
+# ============ project.py 2331 行的真实内容 ============
+def west_update(项目):
+    没克隆就 git init + remote add
+    git fetch <url> <revision 或 refs/heads/*:refs/west/*>
+    git update-ref refs/heads/manifest-rev <新sha> -m 'west update: ...'
+    删掉 refs/west/*
+    决定策略: 保留后代分支? / rebase? / checkout --detach <sha>   # 见实验D
+    git submodule update ...
+
+# ============ commands.py 721 行的真实内容 ============
+class WestCommand:                # 所有命令（内置+扩展）的基类
+    def run(self, args, topdir, manifest, config):
+        self.config = config; self.manifest = manifest; self.topdir = topdir
+        for hook in self.hooks: hook(self)       # 延迟的警告/错误在这里吐
+        self.do_run(args)                        # ← 每个命令真正的逻辑
+```
