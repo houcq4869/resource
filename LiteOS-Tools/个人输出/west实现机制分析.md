@@ -65,16 +65,15 @@ Zephyr 项目开发一般使用west进行项目构建和管理，west的作用�
 - west completion — shell 补全脚本
 - west gtags — 生成 GNU global 标签
 
-
-
 典型工作流：west update → west boards → west build -b （board）> → west flash → west debug。
 
 
 ## West v1.4.0 源码深度解析
 
+### 架构流程分析
 
 west (console script)
- └─ src/west/__main__.py → main()                    
+ └─ src/west/__ main __ .py → main()                    
      └─ WestApp.run(argv)                         
          ├─ ① parse_early_args(argv)                 # 手写解析 -h/-V/-v/-q/-z 和命令名
          ├─ ② setup_west_logging / colorama.init()
@@ -85,7 +84,6 @@ west (console script)
          ├─ ⑦ load_aliases()                         # alias.* 配置
          ├─ ⑧ setup_parsers()                        # argparse + 扩展桩解析器
          └─ ⑨ run_command()                          # 别名展开 → 分发 → 异常兜底
-
 
 
 ```python
@@ -138,7 +136,7 @@ class WestCommand:                # 所有命令（内置+扩展）的基类
         self.do_run(args)                        # ← 每个命令真正的逻辑
 ```
 
-
+### 命令跟踪——west topdir
 #### main.py
 
 `BUILTIN_COMMAND_GROUPS`（:1204-1225，全部命令的注册表）
@@ -374,3 +372,7 @@ BUILTIN_COMMAND_GROUPS = {
 
 `Topdir.do_run`（:2102-2103)
 
+```python
+    def do_run(self, args, user_args):
+        self.inf(PurePath(self.topdir).as_posix())
+```
