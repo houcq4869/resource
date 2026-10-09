@@ -1,0 +1,45 @@
+Study/.omo/run-continuation/ses_ee5baf523ffejGhqCcnKNM9T10.json
+  h_5808ebd0f57f3c 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "97f0d9ef79c6ea5c01365a8e0aec1a3b561f0a68",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_d246502d2245d2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ee5baf523ffejGhqCcnKNM9T10",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 801,
+      "total_deletions": 22,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_0f89e2d9d20183": "glm-5.3",
+        "t_2355ed71a5fc91": "glm-5.3",
+        "t_396524fbd5f944": "glm-5.3",
+        "t_3f664a892d8064": "glm-5.3",
+        "t_5195290c1ee1f8": "glm-5.3",
+        "t_683540411d238a": "glm-5.3",
+        "t_809b3c4ccbdaf9": "glm-5.3",
+        "t_ae538467a2c6d3": "glm-5.3",
+        "t_da26efb5b0d8a1": "glm-5.3",
+        "t_ed6d2d3080c556": "glm-5.3"
+      },
+      "model_totals": {
+        "glm-5.3": {
+          "additions": 801,
+          "deletions": 22
+        }
+      }
+    }
+  }
+}
