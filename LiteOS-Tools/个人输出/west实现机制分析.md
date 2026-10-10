@@ -413,7 +413,7 @@ def main(argv=None):
     app.run(argv or sys.argv[1:])
 ```
 
-- WestApp.__ init __ ：整个west的状态清单，后续即给这些字段
+- WestApp.__ init __ ：整个west的状态清单，后续即给这些字段填值
 
 ```python
 def __init__(self):
@@ -430,12 +430,25 @@ def __init__(self):
     self.subparser_gen = None   # 子命令生成器
     self.cmd = None             # 最终要执行的命令实例 ← 第 8 步选定
     self.queued_io = []         # 排队等待输出的消息 ← 第 9 步挂 hook
-
 ```
-- main() -> WestApp()：13 个命令对象就位，其余 13 个字段全是 None
-- app.run(\['update'])  
 
+- 实例化 13 个命令对象
 
+```python
+# main.py:218-221
+for group, classes in BUILTIN_COMMAND_GROUPS.items():
+    lst = [cls() for cls in classes]                              # ① 全部 new 一遍
+    self.builtins.update({command.name: command for command in lst})  # ② 存字典
+    self.builtin_groups[group] = lst                              # ③ 存分组
+# 数据源是文件末尾那张注册表（main.py:1204-1225）：
+BUILTIN_COMMAND_GROUPS = {
+    'built-in commands for managing git repositories': [
+        Init, Update, List, ManifestCommand, Compare, Diff, Status, ForAll, Grep,
+    ],
+    'other built-in commands': [Help, Config, Topdir],
+    None: [SelfUpdate],    # None 组 = 隐藏，不出现在 west help 里
+}
+```
 
 main() 第一句是构造 WestApp()（main.py:203-233）。构造函数遍历 BUILTIN_COMMAND_GROUPS（:1204-1225）——一张“组名 → 命令类列表”的表——把 13 个内置命令类全部实例化存进 self.builtins 字典。此刻 self.builtins\['update'] 已经存在，但什么都没解析、什么都没读，只是对象就位。
 
