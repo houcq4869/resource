@@ -381,3 +381,14 @@ BUILTIN_COMMAND_GROUPS = {
 ### 命令跟踪——west update
 
 #### 首先执行语句
+
+敲下west update后，首先发生**包安装时的约定**
+
+```toml
+# pyproject.toml
+[project.scripts]
+west = "west.app.main:main"     # pip 装包时据此生成 ~/.local/bin/west
+```
+
+终端中west是pip生成的脚本，执行 from west.app.main import main; main()（main.py:1196-1199）
+
