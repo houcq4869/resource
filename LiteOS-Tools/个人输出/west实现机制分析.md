@@ -451,7 +451,7 @@ BUILTIN_COMMAND_GROUPS = {
 ```
 
 
-回车 → ~/.local/bin/west（pip 按 \[project.scripts] 生成）
+回车  → ~/.local/bin/west（pip 按 \[project.scripts] 生成）
      → main()（main.py:1196，两行）
      → WestApp()：13 个命令对象就位，其余 13 个字段全是 None
      → app.run(\['update'])
@@ -501,6 +501,26 @@ for arg in argv:
         break                   # ★★ 后面的 token 全是命令自己的参数，与我无关
 ```
 
+- run()：early_args 的四个消费者
+
+```python
+# main.py:235-250
+early_args = parse_early_args(argv)
+
+# ① 静音 pykwalify：校验库会把校验错误打到 ERROR 日志，
+#    west 要自己控制报错文案（MalformedManifest 的格式），不能让库抢话筒
+logging.getLogger('pykwalify').setLevel(logging.CRITICAL)
+
+# ② ★ verbosity → west.manifest logger 的级别（:669-683）
+#    >=2 → DEBUG，1 → INFO，0 → WARNING，-1 → ERROR
+#    这一步在 load_manifest（第4步）之前！所以 -v 能看到清单解析日志
+self.setup_west_logging(early_args.verbosity)
+
+# ③ colorama.init()：Windows 下让 ANSI 颜色码生效；输出不是终端时自动剥色
+colorama.init()
+
+# ④ 接下来：self.topdir = west_topdir() 
+```
 
 app.run(\['update'])
   → parse_early_args(\['update'])          # 80 行 if-elif 状态机
