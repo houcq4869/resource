@@ -450,6 +450,12 @@ BUILTIN_COMMAND_GROUPS = {
 }
 ```
 
+
+回车 → ~/.local/bin/west（pip 按 \[project.scripts] 生成）
+     → main()（main.py:1196，两行）
+     → WestApp()：13 个命令对象就位，其余 13 个字段全是 None
+     → app.run(\['update'])
+
 #### 1. parse_early_args
 
 - 先扫一遍argv，只提取“在任何情况下都需要尽早知道”的信息，其余全部留给后面的 argparse
@@ -474,8 +480,35 @@ class EarlyArgs(NamedTuple):
     unexpected_arguments: list[str]  # 其他 - 开头的，先记账不报错
 ```
 
+- 朴素状态机
+
+```python
+for arg in argv:
+    if expecting_zephyr_base:          # 上一个是孤立的 -z，这个 token 是它的值
+        zephyr_base = arg
+    elif arg.startswith('-h'):  help = True; consume_more_args(arg[2:])
+    elif arg.startswith('-V'):  version = True; consume_more_args(arg[2:])
+    elif arg == '--version':    version = True
+    elif arg.startswith('-v'):  verbosity += 1; consume_more_args(arg[2:])
+    elif arg.startswith('-q'):  verbosity -= 1; consume_more_args(arg[2:])
+    elif arg == '--verbose':    verbosity += 1
+    elif arg == '--quiet':      verbosity -= 1
+    elif arg.startswith('-z'):  # 三种形态：-z /path、-z=/path、-z/path
+        ...
+    elif arg.startswith('-'):   unexpected_arguments.append(arg)   # ★ 只记账
+    else:
+        command_name = arg      # ★★ 第一个不以 - 开头的 token = 命令名
+        break                   # ★★ 后面的 token 全是命令自己的参数，与我无关
+```
 
 
+app.run(\['update'])
+  → parse_early_args(\['update'])          # 80 行 if-elif 状态机
+  → EarlyArgs(help=F, version=F, zephyr_base=None,
+              verbosity=0, command_name='update',   # ★ 本步最重要产物
+              unexpected_arguments=[])
+  → 静音 pykwalify / 按 verbosity 设日志级别 / colorama 初始化
+  → 即将进入：west_topdir()
 
 #### 2. west_topdir()：向上找 .west 目录 ──► topdir（"路标"就是 .west 本身）
 
