@@ -452,7 +452,29 @@ BUILTIN_COMMAND_GROUPS = {
 
 #### 1. parse_early_args：手工扫出 verb='update'（避开 argparse 死锁）
 
-手工扫参数：
+- 先扫一遍argv，只提取“在任何情况下都需要尽早知道”的信息，其余全部留给后面的 argparse
+
+```python
+# main.py:70-92
+class EarlyArgs(NamedTuple):
+    # We do some manual parsing of the command-line arguments before
+    # delegating the hard parts to argparse. This extra work figures
+    # out the command name, verbosity level, etc.
+    #
+    # This is necessary for:
+    #   - nicer error-handling in situations where the command is an
+    #     extension but we're not in a workspace
+    #   - setting up log levels from the verbosity level
+
+    help: bool                  # -h 是否出现
+    version: bool               # -V 是否出现
+    zephyr_base: Optional[str]  # -z 的值
+    verbosity: int              # -v 加、-q 减，净计数
+    command_name: Optional[str] # ★ 第一个非选项 token
+    unexpected_arguments: list[str]  # 其他 - 开头的，先记账不报错
+```
+
+
 
 
 #### 2. west_topdir()：向上找 .west 目录 ──► topdir（"路标"就是 .west 本身）
