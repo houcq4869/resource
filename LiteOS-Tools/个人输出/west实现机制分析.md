@@ -376,3 +376,8 @@ BUILTIN_COMMAND_GROUPS = {
     def do_run(self, args, user_args):
         self.inf(PurePath(self.topdir).as_posix())
 ```
+
+
+### 命令跟踪——west update
+
+#### 首先执行语句
