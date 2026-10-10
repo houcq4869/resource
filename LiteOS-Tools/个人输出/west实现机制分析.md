@@ -390,7 +390,7 @@ BUILTIN_COMMAND_GROUPS = {
 west = "west.app.main:main"     # pip 装包时据此生成 ~/.local/bin/west
 ```
 
-终端中west是pip生成的脚本，执行 `from west.app.main import main; main()（main.py:1196-1199）` 
+执行 `from west.app.main import main; main()（main.py:1196-1199）` 
 
 main() 第一句是构造 WestApp()（main.py:203-233）。构造函数遍历 BUILTIN_COMMAND_GROUPS（:1204-1225）——一张“组名 → 命令类列表”的表——把 13 个内置命令类全部实例化存进 self.builtins 字典。此刻 self.builtins\['update'] 已经存在，但什么都没解析、什么都没读，只是对象就位。
 
