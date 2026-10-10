@@ -382,7 +382,7 @@ BUILTIN_COMMAND_GROUPS = {
 
 #### 0. pyproject 入口 → WestApp()：13 个命令对象就位
 
-敲下west update后，首先发生**包安装时的约定**
+- 敲下west update后，首先发生**包安装时的约定**
 
 ```toml
 # pyproject.toml
@@ -390,9 +390,48 @@ BUILTIN_COMMAND_GROUPS = {
 west = "west.app.main:main"     # pip 装包时据此生成 ~/.local/bin/west
 ```
 
+- ~/.local/bin/west：执行 `from west.app.main import main; main()`
 
+```python
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+import re
+import sys
+from west.app.main import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())              
+```
 
-- ~/.local/bin/west：执行 `from west.app.main import main; main()（main.py:1196-1199）` 
+- 造一个应用对象，把命令行参数交给它。真正的逻辑在 WestApp 类里
+
+```python
+# main.py:1196-1199
+def main(argv=None):
+    # Create the WestApp instance and let it run.
+    app = WestApp()
+    app.run(argv or sys.argv[1:])
+```
+
+- WestApp.__ init __ ：整个west的状态清单，后续即给这些字段
+
+```python
+def __init__(self):
+    self.topdir = None          # 工作区根    ← 第 2 步 west_topdir() 填
+    self.config = None          # 三级配置    ← 第 3 步 Configuration() 填
+    self.manifest = None        # 清单对象    ← 第 4 步 load_manifest() 填
+    self.mle = None             # 清单加载失败的异常 ← 第 4 步失败时存，第 9 步引爆
+    self.builtins = {}          # 命令名 → 内置命令实例 ← ★本步就填
+    self.extensions = {}        # 扩展命令名 → spec  ← 第 5 步填
+    self.aliases = {}           # 别名 → 命令实例    ← 第 6 步填
+    self.builtin_groups = OrderedDict()   # 组名 → 命令列表（west help 分组显示用）
+    self.extension_groups = OrderedDict() # 项目路径 → 扩展列表
+    self.west_parser = None     # 主 parser   ← 第 7 步填
+    self.subparser_gen = None   # 子命令生成器
+    self.cmd = None             # 最终要执行的命令实例 ← 第 8 步选定
+    self.queued_io = []         # 排队等待输出的消息 ← 第 9 步挂 hook
+
+```
 - main() -> WestApp()：13 个命令对象就位，其余 13 个字段全是 None
 - app.run(\['update'])  
 
