@@ -451,10 +451,12 @@ BUILTIN_COMMAND_GROUPS = {
 ```
 
 
+```
 回车  → ~/.local/bin/west（pip 按 \[project.scripts] 生成）
      → main()（main.py:1196，两行）
      → WestApp()：13 个命令对象就位，其余 13 个字段全是 None
      → app.run(\['update'])
+```
 
 #### 1. parse_early_args
 
@@ -522,6 +524,7 @@ colorama.init()
 # ④ 接下来：self.topdir = west_topdir() 
 ```
 
+```
 app.run(\['update'])
   → parse_early_args(\['update'])          # 80 行 if-elif 状态机
   → EarlyArgs(help=F, version=F, zephyr_base=None,
@@ -529,6 +532,7 @@ app.run(\['update'])
               unexpected_arguments=[])
   → 静音 pykwalify / 按 verbosity 设日志级别 / colorama 初始化
   → 即将进入：west_topdir()
+```
 
 #### 2. west_topdir()
 
@@ -565,11 +569,37 @@ def west_topdir(start=None, fall_back=True):
 
 ```
 
+
+```
+app.run()
+  → west_topdir()                      # 22 行向上遍历
+  → 找到 .west → topdir = west-lab      # .west = 路标目录，内含 config 藏宝图
+  → 找不到 → WestNotFound → topdir=None # 不立刻死，第 10 步由命令自己决定
+  → self.config = Configuration(topdir) # ← 第 3 步：读 .west/config + 全局配置
+```
+
 #### 3. Configuration(topdir)：读 .west/config + ~/.westconfig + /etc/westconfig
 
+- 入口：topdir 在这里被消费：Configuration 拿着它拼出 .west/config 的路径，一次性把三级配置文件全部读进内存
+```python
+# main.py:260-266
+self.config = west.configuration.Configuration(topdir=self.topdir)   # ① 本步
+self.config._copy_to_configparser(west.configuration.config)          # ② 遗留兼容，见 3.7
+```
 
 
 
+
+
+```
+run()
+  → Configuration(topdir)                 # 读三层文件 → 三个 _InternalCF（或 None）
+  → _copy_to_configparser(全局config)      # 兼容旧扩展
+  → 产出：self.config
+      读：ALL = local > global > system，KeyError 逐级下落，默认值兜底
+      写：默认 LOCAL，懒建文件，立即全量重写，无并发保护
+  → 即将进入：load_manifest()             # ← 第 4 步：用 manifest.path/file 找到 west.yml
+```
 #### 4. load_manifest()：west.yml →校验→ Project 图（import 递归合并）【失败仅存 self.mle】
 
 
