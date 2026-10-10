@@ -380,7 +380,7 @@ BUILTIN_COMMAND_GROUPS = {
 
 ### 命令跟踪——west update
 
-#### 1. west.app.main:main
+#### 0. pyproject 入口 → WestApp()：13 个命令对象就位
 
 敲下west update后，首先发生**包安装时的约定**
 
@@ -394,16 +394,22 @@ west = "west.app.main:main"     # pip 装包时据此生成 ~/.local/bin/west
 
 main() 第一句是构造 WestApp()（main.py:203-233）。构造函数遍历 BUILTIN_COMMAND_GROUPS（:1204-1225）——一张“组名 → 命令类列表”的表——把 13 个内置命令类全部实例化存进 self.builtins 字典。此刻 self.builtins\['update'] 已经存在，但什么都没解析、什么都没读，只是对象就位。
 
-#### 2. parse_early_args
+#### 1. parse_early_args：手工扫出 verb='update'（避开 argparse 死锁）
 
 手工扫参数：
 
 
-#### 3. west_topdir()
+#### 2. west_topdir()：向上找 .west 目录 ──► topdir（"路标"就是 .west 本身）
 
 
 
-#### 4. load_manifest()
+
+#### 3. Configuration(topdir)：读 .west/config + ~/.westconfig + /etc/westconfig
+
+
+
+
+#### 4. load_manifest()：west.yml →校验→ Project 图（import 递归合并）【失败仅存 self.mle】
 
 
 
@@ -416,28 +422,34 @@ main() 第一句是构造 WestApp()（main.py:203-233）。构造函数遍历 BU
 
 
 
-#### 7. setup_parsers()
+#### 7. setup_parsers()：内置真注册 + 扩展占坑
 
 
 
 
-#### 8. run_command()
+#### 8. run_command()：parse_known_args → 查 builtins 字典 → run_builtin
 
 
 
-#### 9. run_builtin()
+#### 9. run_builtin()：调 verbosity + 兑现延迟错误（update ∈ 白名单）
 
 
 
-#### 10. WestCommand.run()
+#### 10. WestCommand.run()：注入 config/topdir/manifest + hooks → do_run
 
 
 
-#### 11. Update.do_run()
+#### 11. Update.do_run()：带 importer 重解析清单（先 update 再读 import）→ 遍历项目
+
+
+
+
+#### 12. 每项目：init→fetch→update-ref manifest-rev→清 refs/west→策略判定→submodules
 
 
 
 
 
+#### 13. 失败聚合 → CommandError → sys.exit
 
 
