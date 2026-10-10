@@ -530,10 +530,40 @@ app.run(\['update'])
   → 静音 pykwalify / 按 verbosity 设日志级别 / colorama 初始化
   → 即将进入：west_topdir()
 
-#### 2. west_topdir()：向上找 .west 目录 ──► topdir（"路标"就是 .west 本身）
+#### 2. west_topdir()
+
+- west init 落地产物即
+west-lab/                 ← 工作区根（topdir）
+├── .west/                ← ★ 路标：它的存在本身就是"根在这里"的声明
+│   └── config            ← 藏宝图，就 3 行（实验2 实测）：
+│       \[manifest]
+│       path = manifest   # 清单仓在根下的相对路径
+│       file = west.yml   # 清单文件名
+├── manifest/             ← 清单仓（west.yml 住这里）
+├── lib/                  ← 项目仓（west update 克隆的）
+└── app/
 
 
+```python
+# util.py:65-86
+def west_topdir(start=None, fall_back=True):
+    cur_dir = pathlib.Path(start or os.getcwd())   # ① 起点默认 cwd
 
+    while True:
+        if (cur_dir / WEST_DIR).is_dir():          # ② 探测：这里有 .west 吗
+            return os.fspath(cur_dir)              #    有 → 我就是根，返回
+
+        parent_dir = cur_dir.parent                # ③ 没有 → 上移一级
+        if cur_dir == parent_dir:                  # ④ 到文件系统根了吗？
+            if fall_back and os.environ.get('ZEPHYR_BASE'):
+                return west_topdir(os.environ['ZEPHYR_BASE'],
+                                   fall_back=False)   # ⑤ 换个起点再试一次
+            else:
+                raise WestNotFound('Could not find a west workspace '
+                                   'in this or any parent directory')
+        cur_dir = parent_dir                       # ⑥ 继续向上
+
+```
 
 #### 3. Configuration(topdir)：读 .west/config + ~/.westconfig + /etc/westconfig
 
