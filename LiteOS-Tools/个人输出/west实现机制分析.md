@@ -581,10 +581,27 @@ app.run()
 #### 3. Configuration(topdir)：读 .west/config + ~/.westconfig + /etc/westconfig
 
 - 入口：topdir 在这里被消费：Configuration 拿着它拼出 .west/config 的路径，一次性把三级配置文件全部读进内存
+
 ```python
 # main.py:260-266
 self.config = west.configuration.Configuration(topdir=self.topdir)   # ① 本步
-self.config._copy_to_configparser(west.configuration.config)          # ② 遗留兼容，见 3.7
+self.config._copy_to_configparser(west.configuration.config)          # ② 遗留兼容
+```
+
+- 三个 \_InternalCF，可能为 None
+
+```python
+# configuration.py:163-179（删注释）
+def __init__(self, topdir=None):
+    local_path = _location(ConfigFile.LOCAL, topdir=topdir,
+                           find_local=False) or None          # ★ 细节见下
+    self._system_path = Path(_location(ConfigFile.SYSTEM))
+    self._global_path = Path(_location(ConfigFile.GLOBAL))
+    self._local_path  = Path(local_path) if local_path else None
+
+    self._system = _InternalCF.from_path(self._system_path)   # 文件不存在 → None
+    self._global = _InternalCF.from_path(self._global_path)   # 文件不存在 → None
+    self._local  = _InternalCF.from_path(self._local_path)    # 文件不存在 → None
 ```
 
 
