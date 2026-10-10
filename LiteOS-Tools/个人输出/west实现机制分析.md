@@ -380,7 +380,7 @@ BUILTIN_COMMAND_GROUPS = {
 
 ### 命令跟踪——west update
 
-#### 首先执行语句
+#### 1. west.app.main:main
 
 敲下west update后，首先发生**包安装时的约定**
 
@@ -390,5 +390,54 @@ BUILTIN_COMMAND_GROUPS = {
 west = "west.app.main:main"     # pip 装包时据此生成 ~/.local/bin/west
 ```
 
-终端中west是pip生成的脚本，执行 from west.app.main import main; main()（main.py:1196-1199）
+终端中west是pip生成的脚本，执行 `from west.app.main import main; main()（main.py:1196-1199）` 
+
+main() 第一句是构造 WestApp()（main.py:203-233）。构造函数遍历 BUILTIN_COMMAND_GROUPS（:1204-1225）——一张“组名 → 命令类列表”的表——把 13 个内置命令类全部实例化存进 self.builtins 字典。此刻 self.builtins\['update'] 已经存在，但什么都没解析、什么都没读，只是对象就位。
+
+#### 2. parse_early_args
+
+手工扫参数：
+
+
+#### 3. west_topdir()
+
+
+
+#### 4. load_manifest()
+
+
+
+#### 5. load_extension_specs()
+
+
+
+
+#### 6. load_aliases()
+
+
+
+#### 7. setup_parsers()
+
+
+
+
+#### 8. run_command()
+
+
+
+#### 9. run_builtin()
+
+
+
+#### 10. WestCommand.run()
+
+
+
+#### 11. Update.do_run()
+
+
+
+
+
+
 
