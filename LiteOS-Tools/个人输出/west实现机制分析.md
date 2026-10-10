@@ -380,7 +380,7 @@ BUILTIN_COMMAND_GROUPS = {
 
 ### 命令跟踪——west update
 
-#### 0. pyproject 入口 → WestApp()：13 个命令对象就位
+#### 0. pyproject 入口 → WestApp()
 
 - 敲下west update后，首先发生**包安装时的约定**
 
@@ -450,7 +450,7 @@ BUILTIN_COMMAND_GROUPS = {
 }
 ```
 
-#### 1. parse_early_args：手工扫出 verb='update'（避开 argparse 死锁）
+#### 1. parse_early_args
 
 - 先扫一遍argv，只提取“在任何情况下都需要尽早知道”的信息，其余全部留给后面的 argparse
 

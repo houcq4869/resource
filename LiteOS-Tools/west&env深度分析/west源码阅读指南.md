@@ -367,7 +367,7 @@ $ python3
 
 ### 5.1 拦路虎一：`NamedTuple` + `_replace` 是什么打法？
 
-west 满屏 `xxx = self._ctx._replace(a=1, b=2)`。这不是什么高深设计，就是**"不可变结构体 + 改一个字段返回新副本"**：
+west 满屏 `xxx = self._ctx._replace(a=1, b=2)`。这不是什么高深设计，就是 **"不可变结构体 + 改一个字段返回新副本"**：
 
 ```python
 from typing import NamedTuple
