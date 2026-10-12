@@ -398,7 +398,7 @@ run()
       写：默认 LOCAL，懒建文件，立即全量重写，无并发保护
   → 即将进入：load_manifest()             # ← 第 4 步：用 manifest.path/file 找到 west.yml
 ```
-#### 4. load_manifest()：west.yml →校验→ Project 图（import 递归合并）【失败仅存 self.mle】
+#### 4. load_manifest()
 
 - 把 west.yml 这份**意图声明**变成程序可操作的对象图
 
@@ -441,7 +441,8 @@ def load_manifest(self):
 
 - import递归
 	- **机制：递归构造新 Manifest 实例 + 共享同一个可变 `_import_ctx`**（manifest.py:2225-2242 / 2583-2608）：
-	- 先到先得：谁先来谁注册，后来的忽略
+	- **先到先得**：谁先来谁注册，后来的忽略
+	- 解析顺序：`_load_validated` 的文档字符串（:1992-1999）
 
 ```python
 child_ctx = self._ctx._replace(
@@ -464,6 +465,14 @@ def _add_project(self, project):
 ```
 
 
+```
+# 解析顺序
+① self: import: 导入的项目      ← 最先解析
+② 本文件 projects: 声明的项目
+③ 项目 import: 导入的项目        ← 最后解析
+```
+
+
 
 ```
 app.run()
@@ -477,6 +486,9 @@ app.run()
 ```
 
 #### 5. load_extension_specs()
+
+
+
 
 
 
