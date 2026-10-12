@@ -404,7 +404,53 @@ def load_manifest(self):
         self.mle = e                              # ★ 失败不 die！存起来
 ```
 
+- 解析流水线
 
+```
+.west/config 说 manifest.path=manifest, file=west.yml
+  → Manifest.from_topdir → from_file（:1233-1301）
+  → _load：yaml.load(SafeLoader/CSafeLoader :211)
+  → validate()（:537-601）：
+      ① 顶层必须有 'manifest' 键
+      ② version 预检查（对照 SCHEMA_VERSION='1.2' + _VALID_SCHEMA_VERS 白名单）
+      ③ pykwalify.core.Core(source_data, manifest-schema.yml).validate()
+         → SchemaError 包装成 MalformedManifest（附文件路径 + schema 路径）
+  → _load_validated（:1992 起）语义解析：
+      ① self: → ManifestProject（名字硬编码 'manifest'，FIXME #327）
+      ② defaults/remotes → _defaults NamedTuple + url_bases 字典
+      ③ projects 逐条 _load_project（:2337-2459）：
+           url 优先级：显式 url > remote+repo-path > defaults.remote
+           url = url_bases[remote] + '/' + (repo-path 或 name)
+           path = path_prefix / 显式path 或 name（路径逃逸校验 :2429-2457，
+                  拒绝绝对路径/../进 .west）
+      ④ import 递归合并（见下）
+      ⑤ _check_paths_are_unique（:2728）
+      ⑥ ManifestProject 硬插 projects[0]
+```
+
+- import递归
+	- **机制：递归构造新 Manifest 实例 + 共享同一个可变 `_import_ctx`**（manifest.py:2225-2242 / 2583-2608）：
+
+```python
+child_ctx = self._ctx._replace(
+    path_prefix=self._ctx.path_prefix / imap_path_prefix,   # 标量字段换新的一层
+    current_data=data, manifest_west_commands=[])
+Manifest(topdir=self.topdir, internal_import_ctx=child_ctx) # 递归！但 ctx.projects
+                                                            # 还是同一个 dict 对象
+```
+
+
+
+```
+app.run()
+  → Configuration(topdir)                    # 第 4 讲：拿到藏宝图
+  → load_manifest()                          # 本讲：
+      from_topdir → 五道关卡 → Project 对象图
+      import 递归：新实例 + 旧登记簿 + 先到先得
+  → 成功：self.manifest = 一张项目图          ★ 三件套最后一件到位！
+    失败：self.mle = 异常（第 10 讲裁决，白名单 6 个命令可继续）
+  → 即将进入：load_extension_specs()          # ← 第 6 讲：扫描扩展命令（只登记不加载）
+```
 
 #### 5. load_extension_specs()
 
