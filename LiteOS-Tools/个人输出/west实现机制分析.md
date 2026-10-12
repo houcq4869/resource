@@ -480,21 +480,72 @@ app.run()
 
 #### 6. load_aliases()
 
+- 管家在档案室里再撕一张便利贴：用户自定义的命令快捷方式（别名）
+
+```python
+def load_aliases(self):
+    if not self.config:                                  # ①
+        return
+    self.aliases = {                                     # ②
+        k[6:]: Alias(k[6:], v)
+        for k, v in self.config.items()
+        if k.startswith('alias.')
+    }
+```
 
 
+
+```
+app.run()
+  → load_manifest() / load_extension_specs()   # 第 5、6 讲
+  → load_aliases()                             # 本讲：配置 [alias] 节 → 别名对象表
+      7 行字典搬运 + Alias 对象（shlex 拆词、永不亲自执行）
+  → 产出：self.aliases = {'h': Alias对象, ...}   ★ 柜子填上
+      兑现在第 9 讲的 while 展开循环（链式、pop 防环、argv 替换）
+  → 即将进入：setup_parsers()                  # ← 第 8 讲：搭 argparse 树
+```
 #### 7. setup_parsers()
 
 
 
-
+```
+app.run()
+  → load_manifest / load_extensions / load_aliases   # 第 5-7 讲：情报就绪
+  → setup_parsers()                                  # 本讲：
+      make_parsers 造树干（5 个全局选项 + subparsers 挂钩）
+      内置 13 个真注册（update 注册了 -k/-r/-f... 全家桶）
+      扩展占坑（stub：只有名字）
+      别名防撞名注册
+  → 产出：self.west_parser（一棵完整的树）            ★ 柜子填上
+  → 即将进入：run_command()                          # ← 第 9 讲：用这棵树解析、分发
+```
 #### 8. run_command()
 
 
-
+```
+app.run()
+  → （第 1-8 讲：情报 + 树）
+  → run_command(argv, early_args)        # 本讲：
+      ① 别名展开（argv 层面，树不知情）
+      ② 未知名拦截（人话报错，带 workspace 语境）
+      ③ parse_known_args（一个 Namespace 装下全部；unknown 分离待透传）
+      ④ 遗留日志净额对齐
+      ⑤ help 路由（-h 的标记在此决策）
+      ⑥ 分发：'update' ∈ builtins → run_builtin   ★ 点名！
+  → 即将进入：run_builtin()              # ← 第 10 讲：点名的善后与三件套注入
+```
 #### 9. run_builtin()
 
 
-
+```
+run_command → 'update' ∈ builtins → run_builtin(args, unknown)   # 本讲：
+    ① 排队 args dump（-vvv 可见）
+    ② self.cmd = Update 实例
+    ③ 音量：INF(3) + v数 - q数，夹在 [0,6]
+    ④ mle 雷裁决：update ∈ 白名单 → 放行（或对非白名单命令排队 die）
+    ⑤ queued_io 全部挂成 pre-run hook
+    ⑥ self.cmd.run(args, unknown, topdir, manifest, config)      # → 第 11 讲
+```
 #### 10. WestCommand.run()
 
 
