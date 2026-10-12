@@ -218,6 +218,18 @@ BUILTIN_COMMAND_GROUPS = {
 
 #### 1. parse_early_args
 
+argparse 要建一棵完整的命令树（west 支持哪些命令、每个命令有什么参数）。对 west 来说，这棵树有个麻烦：
+想建完整的命令树
+  ↓ 为什么？
+树上必须包含"扩展命令"（west build / west flash ……这些不是 west 自带的）
+  ↓ 它们从哪来？
+从各项目的 west-commands.yml 里读 → 得先解析 west.yml（清单）
+  ↓ west.yml 在哪？
+写在 .west/config 里 → 得先找到 .west 目录（工作区）
+  ↓ 可是！
+用户可能敲的是 west -V（只想看版本号）
+  ——他根本不在工作区里，也根本不需要什么命令树！
+
 - 先扫一遍argv，只提取“在任何情况下都需要尽早知道”的信息，其余全部留给后面的 argparse
 
 ```python
@@ -377,6 +389,20 @@ run()
 ```
 #### 4. load_manifest()：west.yml →校验→ Project 图（import 递归合并）【失败仅存 self.mle】
 
+- 把 west.yml 这份**意图声明**变成程序可操作的对象图
+
+```python
+# main.py:280-303
+def load_manifest(self):
+    if not self.topdir:
+        return                                    # 工作区都没有，跳过
+    try:
+        self.manifest = Manifest.from_topdir(topdir=self.topdir,
+                                             config=self.config)
+    except (ManifestVersionError, MalformedManifest, MalformedConfig,
+            ManifestImportFailed, FileNotFoundError, PermissionError) as e:
+        self.mle = e                              # ★ 失败不 die！存起来
+```
 
 
 
