@@ -549,12 +549,28 @@ run_command → 'update' ∈ builtins → run_builtin(args, unknown)   # 本讲�
 #### 10. WestCommand.run()
 
 
-
+```
+run_builtin ⑥ → cmd.run(args, unknown, topdir, manifest, config)   # 本讲：
+    ① config 先行（die 需要 color.ui）
+    ② 闸门一：update 拒收 --bogus（exit 2）
+    ③ 闸门二：无工作区则 die（exit 1，附三条自救建议）
+    ④ 三件套注入完成 → 命令自给自足
+    ⑤ hooks：十一讲积攒的排队消息按序吐出
+    ⑥ do_run(args, unknown) → Update.do_run 开工                 # → 第 12 讲
+```
 #### 11. Update.do_run()
 
 
 
-
+```
+WestCommand.run ⑥ → Update.do_run                          # 本讲：
+    die_if_no_git / init_state（配置+CLI → 实例状态）
+    update_all：
+      ★ 清单二次解析（importer=先 update 再读，FORCE_PROJECTS）
+      遍历：跳过 清单仓/已更新/未激活 → update(project)   # → 第 13 讲
+      失败聚合不中断
+    （update_some：仅限清单仓定义的项目，import 来的拒绝）
+```
 #### 12. init→fetch→update-ref manifest-rev→清 refs/west→策略判定→submodules
 
 
