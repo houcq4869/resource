@@ -630,29 +630,29 @@ run()
 
 
 
-#### 7. setup_parsers()：内置真注册 + 扩展占坑
+#### 7. setup_parsers()
 
 
 
 
-#### 8. run_command()：parse_known_args → 查 builtins 字典 → run_builtin
+#### 8. run_command()
 
 
 
-#### 9. run_builtin()：调 verbosity + 兑现延迟错误（update ∈ 白名单）
+#### 9. run_builtin()
 
 
 
-#### 10. WestCommand.run()：注入 config/topdir/manifest + hooks → do_run
+#### 10. WestCommand.run()
 
 
 
-#### 11. Update.do_run()：带 importer 重解析清单（先 update 再读 import）→ 遍历项目
+#### 11. Update.do_run()
 
 
 
 
-#### 12. 每项目：init→fetch→update-ref manifest-rev→清 refs/west→策略判定→submodules
+#### 12. init→fetch→update-ref manifest-rev→清 refs/west→策略判定→submodules
 
 
 
