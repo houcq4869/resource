@@ -441,6 +441,7 @@ def load_manifest(self):
 
 - import递归
 	- **机制：递归构造新 Manifest 实例 + 共享同一个可变 `_import_ctx`**（manifest.py:2225-2242 / 2583-2608）：
+	- 先到先得：谁先来谁注册，后来的忽略
 
 ```python
 child_ctx = self._ctx._replace(
@@ -448,6 +449,18 @@ child_ctx = self._ctx._replace(
     current_data=data, manifest_west_commands=[])
 Manifest(topdir=self.topdir, internal_import_ctx=child_ctx) # 递归！但 ctx.projects
                                                             # 还是同一个 dict 对象
+```
+
+
+```python
+# _add_project（manifest.py:2690-2704）
+def _add_project(self, project):
+    if project.name not in self._ctx.projects:      # ★ 登记簿里还没有这个名字
+        self._check_project_name(project)
+        self._ctx.projects[project.name] = project  #   登记进去
+        return True
+    else:
+        return False                                 # ★ 已经有人注册了 → 直接忽略
 ```
 
 
