@@ -575,7 +575,17 @@ WestCommand.run ⑥ → Update.do_run                          # 本讲：
 
 
 
-
+```
+update_all 遍历 → self.update(project)                    # 本讲：
+    ① ensure_cloned（init --initial-branch=init_placeholder + remote add）
+    ② smart 免 fetch 短路（cat-file -t）
+    ③ fetch（非SHA：FETCH_HEAD^{commit}；SHA：refs/heads/*:refs/west/* 全量暂存）
+    ④ update-ref -m 'west update: ...' refs/heads/manifest-rev <sha>   ★灵魂
+    ⑤ 清 refs/west/*   ⑥ 体检 HEAD
+    ⑦ 策略三选一（keep-descendants > rebase > detach；分支永不受伤）
+    ⑧ submodule update --init --recursive
+    CalledProcessError → failed 列表记账，不中断
+```
 
 #### 13. 失败聚合 → CommandError → sys.exit
 
