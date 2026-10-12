@@ -138,6 +138,17 @@ class WestCommand:                # 所有命令（内置+扩展）的基类
 
 ### 命令跟踪——west update
 
+把整条执行链想象成你走进一栋大楼办事：
+你说："我要办 update 业务"（敲 west update）
+  → 门口保安室：看你是谁、要不要讲解耳机（第 2 讲：手搓解析器）
+  → 查园区门牌：你属于哪个小区？（第 3 讲：找 .west）
+  → 调档案：你的偏好设置（第 4 讲：读配置）
+  → 查项目名录：这栋楼里有哪些仓（第 5 讲：解析 west.yml）
+  → 查窗口名录：楼里有哪些额外服务（第 6 讲：扫描扩展）
+  → 带你去对应窗口（第 9 讲：分发）
+  → 窗口办事员领三样资料开工（第 10 讲：三件套注入）
+  → 办事员干 update 的活（第 11-13 讲：git 编排）
+
 #### 0. pyproject 入口 → WestApp()
 
 - 敲下west update后，首先发生**包安装时的约定**
@@ -456,6 +467,16 @@ app.run()
 
 
 
+```
+app.run()
+  → load_manifest()                       # 第 5 讲：一张项目图
+  → load_extension_specs()                # 本讲：扫出一张扩展登记表
+      遍历 projects → 每个有 west-commands 的项目：
+      路径安全闸 → yaml 解析 → pykwalify 校验 → 造 WestExtCommandSpec（含欠条 _ExtFactory）
+      影子/重名过滤 → self.extensions = {'hello': spec, ...}
+      ★ 全程零 import（铁证：import 时副作用文件不存在）
+  → 即将进入：load_aliases()              # ← 第 7 讲：别名表（最短的一讲）
+```
 
 #### 6. load_aliases()
 
