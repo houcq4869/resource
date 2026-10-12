@@ -138,11 +138,11 @@ sequenceDiagram
     Cmd->>Sub: do_run(args, unknown)
 ```
 
-| 子类定制开关 | 取值 | 使用者 |
-|---|---|---|
-| `accepts_unknown_args` | True | Diff/Status/Grep（多余参数透传给 git/grep） |
-| `requires_workspace` | False | Init/Config/Help（可在工作区外运行） |
-| `verbosity` | INF 起 | 全部；`-v/-q` 经 `adjust_command_verbosity`（main.py:1182）平移，`-vvv` 时 `die()` 改抛 RuntimeError |
+| 子类定制开关                 | 取值    | 使用者                                                                                      |
+| ---------------------- | ----- | ---------------------------------------------------------------------------------------- |
+| `accepts_unknown_args` | True  | Diff/Status/Grep（多余参数透传给 git/grep）                                                       |
+| `requires_workspace`   | False | Init/Config/Help（可在工作区外运行）                                                               |
+| `verbosity`            | INF 起 | 全部；`-v/-q` 经 `adjust_command_verbosity`（main.py:1182）平移，`-vvv` 时 `die()` 改抛 RuntimeError |
 
 ---
 
