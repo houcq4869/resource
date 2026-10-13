@@ -19,20 +19,20 @@
 
 ### 1.2 仓库地图（`~/workspace/repo/env`，纯 Python ~7800 行）
 
-| 模块 | 行数 | 职责 |
-|---|---|---|
-| `env.py` | 297 | 唯一 CLI 入口（`rt-env`），argparse 分发 + 5 个 console-script 包装 |
-| `env_venv.py` | 521 | venv 自举：指纹校验/修复/升级 + PyPI 镜像选择（§2.2） |
-| `sdk_manager.py` | **1134** | SDK 索引解析、plan/apply 原子安装（§5） |
-| `toolchain_manager.py` | 280 | 本地工具链登记簿 `sdk_cfg.json`（§5.5） |
-| `network.py` | 236 | 代理模式（system/direct/custom）、请求封装 |
-| `package.py` / `pkgsdb.py` / `archive.py` | 235/225/210 | package.json 模型、sqlite md5 跟踪、归档解包（§4） |
-| `kconfig.py` | 100 | `.config` 字符串级解析器（PKGS 生命周期用） |
-| `cmds/cmd_menuconfig.py` | 350 | menuconfig + `.config→rtconfig.h`（§3） |
-| `cmds/cmd_package/` | 2173 | pkgs 子命令（update 1288 行为核心，§4） |
-| `cmds/cmd_webui.py` + `plugins/` | 615 + ~4000 | 插件市场 + WebUI BFF（§6） |
-| `ebuild/` | — | SCons 构建库的**重写版**，未被打包（§7.2） |
-| `statistics.py` / `file_context_menu.py` / `info.py` / `vars.py` | 71/183/171/37 | 上报、右键菜单、元数据、SCons 风格 Export/Import |
+| 模块                                                               | 行数            | 职责                                                      |
+| ---------------------------------------------------------------- | ------------- | ------------------------------------------------------- |
+| `env.py`                                                         | 297           | 唯一 CLI 入口（`rt-env`），argparse 分发 + 5 个 console-script 包装 |
+| `env_venv.py`                                                    | 521           | venv 自举：指纹校验/修复/升级 + PyPI 镜像选择（§2.2）                    |
+| `sdk_manager.py`                                                 | **1134**      | SDK 索引解析、plan/apply 原子安装（§5）                            |
+| `toolchain_manager.py`                                           | 280           | 本地工具链登记簿 `sdk_cfg.json`（§5.5）                           |
+| `network.py`                                                     | 236           | 代理模式（system/direct/custom）、请求封装                         |
+| `package.py` / `pkgsdb.py` / `archive.py`                        | 235/225/210   | package.json 模型、sqlite md5 跟踪、归档解包（§4）                  |
+| `kconfig.py`                                                     | 100           | `.config` 字符串级解析器（PKGS 生命周期用）                           |
+| `cmds/cmd_menuconfig.py`                                         | 350           | menuconfig + `.config→rtconfig.h`（§3）                   |
+| `cmds/cmd_package/`                                              | 2173          | pkgs 子命令（update 1288 行为核心，§4）                           |
+| `cmds/cmd_webui.py` + `plugins/`                                 | 615 + ~4000   | 插件市场 + WebUI BFF（§6）                                    |
+| `ebuild/`                                                        | —             | SCons 构建库的**重写版**，未被打包（§7.2）                            |
+| `statistics.py` / `file_context_menu.py` / `info.py` / `vars.py` | 71/183/171/37 | 上报、右键菜单、元数据、SCons 风格 Export/Import                      |
 
 **`~/.env` 布局**（POSIX 与 Windows 同构）：
 
