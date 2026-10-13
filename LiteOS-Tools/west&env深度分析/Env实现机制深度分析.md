@@ -229,14 +229,14 @@ rt-thread 的 `building.py:351-356` 用修补版 SCons 预处理器解析 rtconf
 
 子命令名 `pkg`，aliases `['pkgs', 'package']`。**全部是 flag、无位置参数**：
 
-| flag | 行为 |
-|---|---|
-| `--update` / `--update-force` | 差集安装/卸载（force 覆盖"用户管理包"保护） |
-| `--list` | 列索引内包 |
-| `--wizard` | 本地生成新包的 Kconfig+package.json 模板 |
+| flag                                   | 行为                                                                           |
+| -------------------------------------- | ---------------------------------------------------------------------------- |
+| `--update` / `--update-force`          | 差集安装/卸载（force 覆盖"用户管理包"保护）                                                   |
+| `--list`                               | 列索引内包                                                                        |
+| `--wizard`                             | 本地生成新包的 Kconfig+package.json 模板                                              |
 | `--upgrade`（±`-force`/`-script-force`） | `git pull` 更新 `~/.env/packages/packages` 索引仓（`cmd_package_upgrade.py:55-94`） |
-| `--upgrade-modules` | 更新 env 自身（源码仓 pull） |
-| `--printenv` | 打印环境变量 |
+| `--upgrade-modules`                    | 更新 env 自身（源码仓 pull）                                                          |
+| `--printenv`                           | 打印环境变量                                                                       |
 
 ⚠️ **无 `--pack-version` CLI 参数**——版本选择只能经 menuconfig（调研计划预判证伪）。无 flag 时 `package_print_help()` 直接 `os.system('pkgs -h')` 递归拉起 shell（`cmd_package_printenv.py:46-47`）。
 
