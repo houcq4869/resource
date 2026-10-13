@@ -42,14 +42,14 @@
 
 ## 一、调研对象
 
-| 对象 | 仓库 | 初判重点路径（以实际版本为准，读码时修正） |
-|---|---|---|
-| west 工具本体 | zephyr 主仓 `scripts/west/` | `app/`（CLI 入口与引导）、`commands.py`（命令注册）、`manifest/`（west.yml 解析）、`build/`（CMake 封装）、`config.py`（三层配置） |
-| Zephyr 内置 west 子命令 | zephyr 主仓 `scripts/west_commands/` | `build.py`、`flash_debug.py`、`runners/`（`core.py` 的 `ZephyrBinaryRunner` + openocd/jlink/pyocd/nrfjprog 等后端）、`boards.py`、`sign.py`、`sdk.py` |
-| west 命令注册清单 | zephyr 主仓 `scripts/west-commands.yml` | 扩展机制的声明格式 |
-| RT-Thread Env（Linux/macOS） | `RT-Thread/env` | 仓库结构、`env.sh` 引导、命令封装 |
-| RT-Thread Env（Windows） | `RT-Thread/env-windows` | 自带工具链的打包方式、`env.cmd` 引导、免装机制 |
-| RT-Thread 构建系统 | `RT-Thread/rt-thread` 的 `tools/` | `building.py`（构建核心 + `tgt_dict`）、`options.py`、`targets/*.py`（约 20 个 IDE 导出器）、BSP 内 `SConstruct`/`template.uvprojx` 等模板 |
+| 对象                         | 仓库                                    | 初判重点路径（以实际版本为准，读码时修正）                                                                                                                      |
+| -------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| west 工具本体                  | zephyr 主仓 `scripts/west/`             | `app/`（CLI 入口与引导）、`commands.py`（命令注册）、`manifest/`（west.yml 解析）、`build/`（CMake 封装）、`config.py`（三层配置）                                        |
+| Zephyr 内置 west 子命令         | zephyr 主仓 `scripts/west_commands/`    | `build.py`、`flash_debug.py`、`runners/`（`core.py` 的 `ZephyrBinaryRunner` + openocd/jlink/pyocd/nrfjprog 等后端）、`boards.py`、`sign.py`、`sdk.py` |
+| west 命令注册清单                | zephyr 主仓 `scripts/west-commands.yml` | 扩展机制的声明格式                                                                                                                                  |
+| RT-Thread Env（Linux/macOS） | `RT-Thread/env`                       | 仓库结构、`env.sh` 引导、命令封装                                                                                                                      |
+| RT-Thread Env（Windows）     | `RT-Thread/env-windows`               | 自带工具链的打包方式、`env.cmd` 引导、免装机制                                                                                                               |
+| RT-Thread 构建系统             | `RT-Thread/rt-thread` 的 `tools/`      | `building.py`（构建核心 + `tgt_dict`）、`options.py`、`targets/*.py`（约 20 个 IDE 导出器）、BSP 内 `SConstruct`/`template.uvprojx` 等模板                     |
 
 **版本策略**：读码前先锁版本（zephyr 取当前 LTS 主线 tag；rt-thread 取 master + 最新 release tag 各一份），所有产出标注"基于 vX.Y.Z"。
 
