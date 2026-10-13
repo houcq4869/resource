@@ -1,0 +1,49 @@
+LiteOS-Tools/west&env深度分析/.omo/run-continuation/ses_ed0cc91bcffeWDqts7GemnJz26.json
+  h_5808ebd0f57f3c 3,7
+LiteOS-Tools/west&env深度分析/.omo/run-continuation/ses_ed0e91d16ffeX5CcHM9p89V6oD.json
+  h_5808ebd0f57f3c 3,7
+LiteOS-Tools/west&env深度分析/.omo/run-continuation/ses_ed0fb1ef9ffe6eMLRc4l98NKtx.json
+  h_5808ebd0f57f3c 3,7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.2",
+  "base_commit_sha": "c6215b8f6f18408b9b240bdc00d13b853e4bc73d",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_d246502d2245d2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ee5baf523ffejGhqCcnKNM9T10",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "total_additions": 801,
+      "total_deletions": 22,
+      "overridden_lines": 0,
+      "turn_models": {
+        "t_0f89e2d9d20183": "glm-5.3",
+        "t_2355ed71a5fc91": "glm-5.3",
+        "t_396524fbd5f944": "glm-5.3",
+        "t_3f664a892d8064": "glm-5.3",
+        "t_5195290c1ee1f8": "glm-5.3",
+        "t_683540411d238a": "glm-5.3",
+        "t_809b3c4ccbdaf9": "glm-5.3",
+        "t_ae538467a2c6d3": "glm-5.3",
+        "t_da26efb5b0d8a1": "glm-5.3",
+        "t_ed6d2d3080c556": "glm-5.3"
+      },
+      "model_totals": {
+        "glm-5.3": {
+          "additions": 801,
+          "deletions": 22
+        }
+      }
+    }
+  }
+}
