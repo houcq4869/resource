@@ -122,13 +122,13 @@
 
 ## 四、落地路线建议（供决策，非本调研范围）
 
-| 阶段 | 内容 | 交付判据 |
-|---|---|---|
-| M1 骨架 | liteos-tool pip 包 + manifest 多仓 + boards + config | `pip install` 后 `liteos init/update/boards` 可用；最小源码集（内核+单板 <1GB）可拉取 |
-| M2 构建与导出 | `liteos build`（GN 后端透传）+ `export --target=vsc,cmake` + compile_commands 恒产出 | 纯净 Linux/Windows 环境 30 分钟内：clone→build→VS Code 打开无红波浪线 |
-| M3 烧录调试 | runner 四后端 + 全局 dry-run + debug（GDB） | CI 内编→烧→测全链命令化；`liteos flash --dry-run` 任意后端可用 |
-| M4 Keil/IAR 导出 | mdk5/iar 模板范式 + BSP 模板规范 | 传统 MCU 团队不换工具完成编译烧录（方向一闭环） |
-| M5 Windows 一键安装 | 离线安装包（Env 四件套机制）+ `sdk install` 在线按需 | "纯净 Windows 30 分钟点灯"（方向二闭环） |
+| 阶段              | 内容                                                                          | 交付判据                                                                |
+| --------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| M1 骨架           | liteos-tool pip 包 + manifest 多仓 + boards + config                           | `pip install` 后 `liteos init/update/boards` 可用；最小源码集（内核+单板 <1GB）可拉取 |
+| M2 构建与导出        | `liteos build`（GN 后端透传）+ `export --target=vsc,cmake` + compile_commands 恒产出 | 纯净 Linux/Windows 环境 30 分钟内：clone→build→VS Code 打开无红波浪线              |
+| M3 烧录调试         | runner 四后端 + 全局 dry-run + debug（GDB）                                        | CI 内编→烧→测全链命令化；`liteos flash --dry-run` 任意后端可用                      |
+| M4 Keil/IAR 导出  | mdk5/iar 模板范式 + BSP 模板规范                                                    | 传统 MCU 团队不换工具完成编译烧录（方向一闭环）                                          |
+| M5 Windows 一键安装 | 离线安装包（Env 四件套机制）+ `sdk install` 在线按需                                        | "纯净 Windows 30 分钟点灯"（方向二闭环）                                         |
 
 > 优先级依据：《汇报最终版》三方向排序 + 短板严重度（CLI 烧录 ❌ > Windows ❌ > IDE 导出 ⚠️）。
 
