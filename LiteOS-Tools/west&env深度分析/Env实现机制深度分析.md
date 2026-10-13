@@ -449,17 +449,17 @@ BSP 层 SConstruct      # 建 SCons Environment（CC=rtconfig.CC），调 Prepar
 
 ## 九、实操验证记录（blue-pill BSP，2026-10-09 会话）
 
-| 步骤 | 命令 | 结果 |
-|---|---|---|
-| 激活 | `source ~/.env/env.sh` | ✅ 自动建 venv，装 SCons 4.11.1 + kconfiglib 14.1.0 + rt-env 2.0.2，国内网络切阿里云镜像 |
-| 图形配置 | `menuconfig`（tmux 内） | ✅ TUI 正常（kconfiglib），菜单结构完整 |
-| 配置转换 | `menuconfig --generate` | ✅ `.config → rtconfig.h`，md5 前后一致（幂等） |
-| 包管理 | `pkgs --update` | ✅ 下载 3 包（CMSIS-Core / STM32F1-HAL / CMSIS-Driver）到 `packages/<name>-latest`，生成 pkgs.json + dbsqlite（⚠️ 需代理 + `http.version=HTTP/1.1` 才稳定） |
-| Keil 导出 | `scons --target=mdk5 --project-name=demo` | ✅ 生成 `demo.uvprojx`（43KB）；分组实证：Applications/CPU/DeviceDrivers/Drivers/Finsh/Kernel/Libc/STM32F1-CMSIS/STM32F1-HAL——DefineGroup 名直通 IDE 分组 |
-| VS Code 导出 | `scons --target=vsc` | ✅ compilerPath、23 头路径、6 宏、compileCommands 指向 build/compile_commands.json |
-| CMake 导出 | `scons --target=cmake` | ✅ CMakeLists.txt（OBJECT/INTERFACE 库模型） |
-| 真实构建 | `scons -j8` | ✅ arm-none-eabi-gcc 10.3.1，rtthread.elf（text 52KB）/bin/hex |
-| 编译数据库 | `scons --cdb -j8` | ✅ build/compile_commands.json，69 条 |
+| 步骤         | 命令                                        | 结果                                                                                                                                        |
+| ---------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 激活         | `source ~/.env/env.sh`                    | ✅ 自动建 venv，装 SCons 4.11.1 + kconfiglib 14.1.0 + rt-env 2.0.2，国内网络切阿里云镜像                                                                   |
+| 图形配置       | `menuconfig`（tmux 内）                      | ✅ TUI 正常（kconfiglib），菜单结构完整                                                                                                               |
+| 配置转换       | `menuconfig --generate`                   | ✅ `.config → rtconfig.h`，md5 前后一致（幂等）                                                                                                     |
+| 包管理        | `pkgs --update`                           | ✅ 下载 3 包（CMSIS-Core / STM32F1-HAL / CMSIS-Driver）到 `packages/<name>-latest`，生成 pkgs.json + dbsqlite（⚠️ 需代理 + `http.version=HTTP/1.1` 才稳定） |
+| Keil 导出    | `scons --target=mdk5 --project-name=demo` | ✅ 生成 `demo.uvprojx`（43KB）；分组实证：Applications/CPU/DeviceDrivers/Drivers/Finsh/Kernel/Libc/STM32F1-CMSIS/STM32F1-HAL——DefineGroup 名直通 IDE 分组 |
+| VS Code 导出 | `scons --target=vsc`                      | ✅ compilerPath、23 头路径、6 宏、compileCommands 指向 build/compile_commands.json                                                                  |
+| CMake 导出   | `scons --target=cmake`                    | ✅ CMakeLists.txt（OBJECT/INTERFACE 库模型）                                                                                                    |
+| 真实构建       | `scons -j8`                               | ✅ arm-none-eabi-gcc 10.3.1，rtthread.elf（text 52KB）/bin/hex                                                                                |
+| 编译数据库      | `scons --cdb -j8`                         | ✅ build/compile_commands.json，69 条                                                                                                        |
 
 ## 十、对 LiteOS L0/L1 的机制级启示（供 P3 对比文档引用）
 
