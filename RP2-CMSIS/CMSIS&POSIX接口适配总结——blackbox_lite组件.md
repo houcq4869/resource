@@ -1,19 +1,21 @@
 
 ### 需求背景
 
+#### 需求分析
+
 **OpenHarmony解决方案为支持多内核需求，切换内核不影响上层服务&框架功能，需要上层部件统一适配CMSIS&POSIX接口，替代使用操作系统原生接口（比如LOS_xx）。**
 
 专项的分工规则：
 
-| 系统类型 | 统一使用 |
-|---|---|
-| small 系统 | POSIX |
-| mini 系统 | CMSIS-RTOS2 |
-| small+mini 共编组件 | 有分支隔离就分开适配，没有就共用一套 POSIX |
+| 系统类型            | 统一使用                      |
+| --------------- | ------------------------- |
+| small 系统        | POSIX                     |
+| mini 系统         | CMSIS-RTOS2               |
+| small+mini 共编组件 | 存在分支隔离则分开适配，没有就共用一套 POSIX |
 
 **blackbox_lite组件**使用了LiteOS-M原生接口（信号量、延时）及pthread接口（线程），两套混用，需要全部替换成CMSIS-RTOS2标准接口。
 
-改造的收益一句话：**组件代码和具体内核解耦**——底下是LiteOS-M还是别的RTOS，只要提供了CMSIS-RTOS2实现，黑盒一行代码不用改：
+改造目的：**组件代码和具体内核解耦**——LiteOS-M或者其他RTOS，只要提供CMSIS-RTOS2实现即可
 
 ```mermaid
 graph TB
@@ -27,7 +29,7 @@ graph TB
     end
 ```
 
-动手前先做一个**形态判断**：查 `bundle.json`，`adapted_system_type` 只有 `"mini"`——mini-only组件，无共编场景。所以**单套CMSIS实现，不需要 `#ifdef`，不需要分支**，改造形态就是最简单的"原地替换"。树内也核查过，没有任何small系统组件的BUILD.gn依赖本仓，不用担心漏掉另一半。
+**形态判断**：查 `bundle.json`，`adapted_system_type` 只有 `"mini"`——mini-only组件，无共编场景。所以**单套CMSIS实现，不需要 `#ifdef`，不需要分支**，改造形态就是最简单的"原地替换"。树内也核查过，没有任何small系统组件的BUILD.gn依赖本仓，不用担心漏掉另一半。
 
 #### blackbox_lite组件介绍
 
