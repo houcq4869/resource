@@ -33,12 +33,12 @@
 UINT32 LOS_BinarySemCreate(UINT16 count, UINT32 *semHandle);
 ```
 
-| 项 | 说明 |
-|---|---|
-| 参数 count | **初始令牌数**：1 = 创建时令牌可用；0 = 创建时令牌已被占用 |
-| 参数 semHandle | **出参**：函数把信号量句柄写回这个指针指向的变量 |
-| 返回 | LOS_OK(0) 成功；其他为错误码 |
-| "二元"含义 | 信号量令牌上限 = 1（要么 0 要么 1，就像只有 1 个车位） |
+| 项            | 说明                                  |
+| ------------ | ----------------------------------- |
+| 参数 count     | **初始令牌数**：1 = 创建时令牌可用；0 = 创建时令牌已被占用 |
+| 参数 semHandle | **出参**：函数把信号量句柄写回这个指针指向的变量          |
+| 返回           | LOS_OK(0) 成功；其他为错误码                 |
+| "二元"含义       | 信号量令牌上限 = 1（要么 0 要么 1，就像只有 1 个车位）   |
 
 **注意**：句柄是"出参"模式——先声明 `unsigned int sem;`，把 `&sem` 传进去，函数成功后在 `sem` 里拿句柄。
 
@@ -48,11 +48,11 @@ UINT32 LOS_BinarySemCreate(UINT16 count, UINT32 *semHandle);
 UINT32 LOS_SemPend(UINT32 semHandle, UINT32 timeout);
 ```
 
-| 项 | 说明 |
-|---|---|
-| 参数 semHandle | 创建时拿到的句柄 |
-| 参数 timeout | **毫秒**。三个特殊值：`LOS_NO_WAIT`(0)=非阻塞；`LOS_WAIT_FOREVER`(0xFFFFFFFF)=永久阻塞；N=最多等 N 毫秒 |
-| 返回 | LOS_OK 拿到令牌；`LOS_ERRNO_SEM_TIMEOUT` 超时没拿到；其他错误码 |
+| 项            | 说明                                                                               |
+| ------------ | -------------------------------------------------------------------------------- |
+| 参数 semHandle | 创建时拿到的句柄                                                                         |
+| 参数 timeout   | **毫秒**。三个特殊值：`LOS_NO_WAIT`(0)=非阻塞；`LOS_WAIT_FOREVER`(0xFFFFFFFF)=永久阻塞；N=最多等 N 毫秒 |
+| 返回           | LOS_OK 拿到令牌；`LOS_ERRNO_SEM_TIMEOUT` 超时没拿到；其他错误码                                  |
 
 （`LOS_NO_WAIT`/`LOS_WAIT_FOREVER` 定义于内核 `los_base.h:84/90`。）
 
