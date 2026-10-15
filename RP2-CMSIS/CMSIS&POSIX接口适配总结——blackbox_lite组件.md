@@ -1,6 +1,6 @@
-### 需求背景
+## 需求分析
 
-#### 需求分析
+### 需求背景
 
 **OpenHarmony解决方案为支持多内核需求，切换内核不影响上层服务&框架功能，需要上层部件统一适配CMSIS&POSIX接口，替代使用操作系统原生接口（比如LOS_xx）。**
 
@@ -11,11 +11,6 @@
 | small 系统        | POSIX                     |
 | mini 系统         | CMSIS-RTOS2               |
 | small+mini 共编组件 | 存在分支隔离则分开适配，没有则共用一套 POSIX |
-
-**blackbox_lite组件接口分析**
-- **形态判断**：查 `bundle.json`，`adapted_system_type` 只有 `"mini"`
-- 使用了LiteOS-M原生接口（信号量、延时等）及pthread接口（线程），两套混用，需要全部替换成CMSIS-RTOS2标准接口。
-
 
 **改造目的：组件代码和具体内核解耦**——无论LiteOS-M或者其他RTOS，只要提供CMSIS-RTOS2实现即可
 
@@ -71,26 +66,29 @@ graph LR
 
 数据结构、启动时序、运行场景的细节见文末[[#附录：组件分析]]。
 
-### 适配思路
+## 适配分析
 
-先给结论：**这类改造的难点不在"怎么改"，而在"怎么证明改了跟没改一样"。** 接口替换本身是体力活，真正花功夫的是逐条论证语义等价和时序安全。
+### 适配过程
 
 整体思路五步：
 
 ```mermaid
 flowchart LR
-    A["定范围<br/>mini-only？"] --> B["摸家底<br/>盘点内核接口调用点"]
-    B --> C["建映射<br/>接口一对一施工图"]
-    C --> D["辨差异<br/>真正要动脑的少数点"]
-    D --> E["保等价<br/>语义 + 时序逐条论证"]
-    E --> F["验证：编译 / 符号 / 头文件命中"]
+    A["判断改造形态"] --> B["内核接口盘点"]
+    B --> C["接口一对一映射"]
+    C --> D["改造核心点分析"]
+    D --> E["语义时序等价论证"]
 ```
 
-#### ① 定范围：判断改造形态
+#### 判断改造形态
 
 见上文——mini-only，单套CMSIS，无分支。**这一步放在最前面**，因为它直接决定后续所有动作的复杂度；如果当初判断错（比如其实有small共编），后面全部返工。
 
-#### ② 摸家底：盘点调用点
+**blackbox_lite组件接口分析**
+- **形态判断**：查 `bundle.json`，`adapted_system_type` 只有 `"mini"`
+- 使用了LiteOS-M原生接口（信号量、延时等）及pthread接口（线程），两套混用，需要全部替换成CMSIS-RTOS2标准接口。
+
+#### 内核接口盘点
 
 全仓grep内核接口，结果**全部集中在 blackbox_core.c**：
 
@@ -105,7 +103,7 @@ flowchart LR
 
 另外两处"藏得深"的也要翻出来：两份公开头里抄的3行LOS函数声明（接口污染），以及bundle.json里缺失的第三方依赖声明。**盘点宁可多花十分钟，也不要改到一半发现漏了一处。**
 
-#### ③ 建映射：一张表当施工图
+#### 接口一对一映射
 
 6组接口一对一，先列总表再动手：
 
@@ -124,7 +122,7 @@ flowchart LR
 - `osWaitForever`（0xFFFFFFFF）和 `LOS_WAIT_FOREVER` 数值一模一样，常数只是从内核头文件搬到了标准头；
 - `osOK` 就是0，判错写法 `!= osOK` 和原来的 `!= 0` 完全等价。
 
-#### ④ 辨差异：真正要动脑的只有三处
+#### 改造核心点分析
 
 映射表大部分是机械替换，但有三处不能无脑改——**这三处才是本次改造的核心知识点**：
 
@@ -153,7 +151,7 @@ LOS是"返回错误码 + 指针出参写句柄"，CMSIS是"直接返回句柄，
 
 CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 是 `void* func(void *)`——不改会触发编译告警。顺手把原来pthread传NULL的"全默认属性"显式化成 `osThreadAttr_t`（线程名 BlackBoxTask / 栈 0x1000 / 优先级 osPriorityNormal），取值都对齐LiteOS默认，行为不变、可读性更好。
 
-#### ⑤ 保等价：两个"敢不敢"的问题
+#### 语义时序等价论证
 
 黑盒的初始化跑在 **CORE_INIT阶段——调度器还没启动**。有两个时序问题必须提前论证，不能等跑飞了再查：
 
@@ -201,7 +199,6 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 - LiteOS 信号量头：`los_sem.h`（LOS_BinarySemCreate:213、LOS_SemPend:273、错误码 :130/:140）
 - LiteOS 基础头：`los_base.h`（LOS_NO_WAIT:84、LOS_WAIT_FOREVER:90、LOS_Msleep:287）
 
-### 改动面一览
 
 5个文件、13处改动，**业务逻辑零变化**，对外API（`BBoxRegisterModuleOps` / `BBoxNotifyError` / `struct ModuleOps`）零变化——下游无感知：
 
@@ -212,7 +209,6 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 | `BUILD.gn` | +1行include | 构建接线 |
 | `bundle.json` | 补cmsis依赖 | 纯元数据声明 |
 
-### 怎么证明改对了
 
 编译通过只是底线，这次做了三层验证：
 
@@ -222,14 +218,14 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 
 行为层面另有5条等价性论证（信号量同底、P/V同义、延时更准、线程同行为、错误路径逐条保留），评审时逐条过。**"纯接口替换"类改造，等价性是论证出来的，不是测出来的**——这算是一条方法论。
 
-### 结论
+## 结论&PR
 
 [OH master分支PR](https://gitcode.com/openharmony/hiviewdfx_blackbox_lite/pull/28)
 [OH 6.1 LTS分支PR](https://gitcode.com/openharmony/hiviewdfx_blackbox_lite/pull/29)
 
 **一句话总结**：mini-only组件的CMSIS适配 = 定范围（单套实现）→ 摸家底（调用点全集中在一个文件）→ 建映射（6组一对一）→ 盯住三处真差异（tick单位/句柄风格/线程签名）→ 论证时序安全 → 符号级验证。真正需要动脑的环节不到两成，剩下的是严谨的体力活。
 
-### 附录：组件分析
+## 附录：组件分析
 
 #### 数据结构三件
 
