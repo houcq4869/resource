@@ -268,8 +268,3 @@ flowchart TD
 | `interfaces/native/kits/blackbox.h` | 对外API + 数据结构 |
 | `interfaces/native/{kits,innerkits}/blackbox_adapter.h` | 平台接口声明（两份副本同步维护） |
 | `BUILD.gn` / `bundle.json` | 构建脚本 / 组件元数据 |
-
-#### 延伸阅读
-
-- 逐函数代码精讲与评审Q&A：[[blackbox_lite代码修改v2]]
-- 评审材料（问题分析/方案/验证全记录）：[[blackbox_lite_CMSIS]]
