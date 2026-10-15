@@ -321,11 +321,11 @@ UINT32 LOS_SemPost(UINT32 semHandle);
 VOID LOS_Msleep(UINT32 msecs);      /* los_base.h:287 */
 ```
 
-| 项 | 说明 |
-|---|---|
-| 参数 | **毫秒数**（M 就是 ms 的意思） |
-| 效果 | 当前任务挂起（让出 CPU 去睡觉），时间到再被唤醒 |
-| 单位 | **毫秒** ← 记住这个，和 CMSIS 的 osDelay（tick）不同！ |
+| 项   | 说明                                 |
+| --- | ---------------------------------- |
+| 参数  | **毫秒数**                            |
+| 效果  | 当前任务挂起，时间到再被唤醒                     |
+| 单位  | **毫秒** ← 和 CMSIS 的 osDelay（tick）不同 |
 
 #### CMSIS-RTOS2 接口
 
@@ -349,11 +349,6 @@ osSemaphoreId_t osSemaphoreNew(uint32_t max_count, uint32_t initial_count,
 | attr | 属性（名称等），NULL = 默认 |
 | 返回 | 句柄；**NULL = 创建失败** |
 
-对比 LOS 版：LOS 是"返回错误码 + 出参句柄"，CMSIS 是"直接返回句柄，NULL 判失败"。
-两种风格无优劣，改代码时把判定从 `!= LOS_OK` 换成 `== NULL` 即可，语义完全一致。
-树内核 LiteOS-M 的实现里，`max_count == 1` 时内部就是调用 `LOS_BinarySemCreate`
-（`kernel/liteos_m/kal/cmsis/cmsis_liteos2.c:1120`），所以底层是同一个东西。
-
 ##### `osSemaphoreAcquire` —— P 操作
 
 ```c
@@ -369,9 +364,6 @@ osStatus_t osSemaphoreAcquire(osSemaphoreId_t semaphore_id, uint32_t timeout);
 **本组件三处调用**：
 - `osSemaphoreAcquire(sem, osWaitForever)` ×2（后台线程、注册路径）——永久等；
 - `osSemaphoreAcquire(sem, 0U)` ×1（通知路径）——非阻塞。
-
-> 细节提醒：`osWaitForever` 的值 `0xFFFFFFFFU` 与旧代码里 `LOS_WAIT_FOREVER` 的
-> `0xFFFFFFFF` **数值一模一样**——只是常数搬了家（从内核头文件搬到 CMSIS 标准头）。
 
 ##### `osSemaphoreRelease` —— V 操作
 
