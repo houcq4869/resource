@@ -201,11 +201,6 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 - [OH master分支PR](https://gitcode.com/openharmony/hiviewdfx_blackbox_lite/pull/28)
 - [OH 6.1 LTS分支PR](https://gitcode.com/openharmony/hiviewdfx_blackbox_lite/pull/29)
 
-**编译通过&三层验证：**
-1. **编译**：nearlink_dk_3863（WS63预编译内核产品）build success；
-2. **符号**：nm扫描 `libblackbox_lite.a`——`los_` 前缀残留 **0个**；6个os\*符号全部为U（未定义，待内核解析），且预编译内核的固件符号清单里**提前**核实过这6个符号都存在；
-3. **头文件命中**：重生成的ninja里 `-I third_party/cmsis` 排在SDK各cmsis副本之前，`cmsis_os2.h` 命中符合预期。
-
 **总结**：mini-only组件的CMSIS适配 = 单套实现 → 调用点全集中在一个文件 → 6组接口一对一映射 →  tick单位/句柄风格/线程签名差异 → 论证时序安全 → 符号级验证。
 
 ## 附录
@@ -214,11 +209,11 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 
 #### 数据结构三件
 
-| 结构 | 角色 | 内容 |
-|---|---|---|
-| `struct ErrorInfo` | 一张"事故报告单" | event / module / errorDesc 三字段 |
-| `struct ModuleOps` | 模块的"诊断能力"登记表 | 模块名 + Dump / Reset / GetLastLogInfo / SaveLastLog 四个回调（可NULL） |
-| `struct BBoxOps` | 注册表节点 | 链表节点 + ModuleOps |
+| 结构                 | 角色        | 内容                                                            |
+| ------------------ | --------- | ------------------------------------------------------------- |
+| `struct ErrorInfo` | 事故报告单     | event / module / errorDesc 三字段                                |
+| `struct ModuleOps` | 模块诊断能力登记表 | 模块名 + Dump / Reset / GetLastLogInfo / SaveLastLog 四个回调（可NULL） |
+| `struct BBoxOps`   | 注册表节点     | 链表节点 + ModuleOps                                              |
 
 #### 启动时序
 
@@ -252,25 +247,25 @@ flowchart TD
     D2 --> R["RebootSystem 复位"]
 ```
 
-重点体会**三种锁策略的设计意图**：
+**三种锁策略的设计意图**：
 
-| 路径 | 拿锁方式 | 为什么 |
-|---|---|---|
-| 注册 | 阻塞（osWaitForever） | 注册方"不成功不罢休"，值得等 |
-| 后台保存 | 阻塞 | 专职干活，排队就好 |
-| 错误通知（温和） | 非阻塞（0超时） | 报错的人不能被锁卡住排队——宁丢一次上报，不堵死报错者 |
-| 错误通知（致命） | 不拿锁 | 系统马上要复位，抢时间保现场第一，锁破坏了也无所谓，有意取舍 |
+| 路径       | 拿锁方式              | 为什么                            |
+| -------- | ----------------- | ------------------------------ |
+| 注册       | 阻塞（osWaitForever） | 注册方"不成功不罢休"，值得等                |
+| 后台保存     | 阻塞                | 专职干活，排队就好                      |
+| 错误通知（温和） | 非阻塞（0超时）          | 报错的人不能被锁卡住排队——宁丢一次上报，不堵死报错者    |
+| 错误通知（致命） | 不拿锁               | 系统马上要复位，抢时间保现场第一，锁破坏了也无所谓，有意取舍 |
 
 #### 文件地图
 
-| 文件 | 职责一句话 |
-|---|---|
-| `blackbox_core.c` | 核心逻辑：注册表、通知分发、后台保存线程（本次改造唯一动逻辑的文件） |
-| `blackbox_adapter.c` | 平台适配层：7个弱符号接口默认实现 + 启动注册SYSTEM模块 |
-| `blackbox_detector.c/.h` | 事件上传桩（预留接口） |
-| `interfaces/native/kits/blackbox.h` | 对外API + 数据结构 |
-| `interfaces/native/{kits,innerkits}/blackbox_adapter.h` | 平台接口声明（两份副本同步维护） |
-| `BUILD.gn` / `bundle.json` | 构建脚本 / 组件元数据 |
+| 文件                                                      | 职责                               |
+| ------------------------------------------------------- | -------------------------------- |
+| `blackbox_core.c`                                       | 核心逻辑：注册表、通知分发、后台保存线程             |
+| `blackbox_adapter.c`                                    | 平台适配层：7个弱符号接口默认实现 + 启动注册SYSTEM模块 |
+| `blackbox_detector.c/.h`                                | 事件上传桩（预留接口）                      |
+| `interfaces/native/kits/blackbox.h`                     | 对外API + 数据结构                     |
+| `interfaces/native/{kits,innerkits}/blackbox_adapter.h` | 平台接口声明（两份副本同步维护）                 |
+| `BUILD.gn` / `bundle.json`                              | 构建脚本 / 组件元数据                     |
 
 ### 接口分析
 
@@ -287,7 +282,7 @@ UINT32 LOS_BinarySemCreate(UINT16 count, UINT32 *semHandle);
 | 参数 count     | **初始令牌数**：1 = 创建时令牌可用；0 = 创建时令牌已被占用 |
 | 参数 semHandle | **出参**：函数把信号量句柄写回这个指针指向的变量          |
 | 返回           | LOS_OK(0) 成功；其他为错误码                 |
-| "二元"含义       | 信号量令牌上限 = 1（要么 0 要么 1，就像只有 1 个车位）   |
+| "二元"含义       | 信号量令牌上限 = 1                         |
 
 **注意**：句柄是"出参"模式——先声明 `unsigned int sem;`，把 `&sem` 传进去，函数成功后在 `sem` 里拿句柄。
 
@@ -381,7 +376,7 @@ osStatus_t osDelay(uint32_t ticks);          /* 延时 ticks 个 tick */
 uint32_t   osKernelGetTickFreq(void);        /* 查询内核 tick 频率（Hz） */
 ```
 
-**单位差异（必考）**：
+**单位差异**：
 
 | 接口 | 单位 | 想延时 1 秒在 1000Hz 内核传 | 在 100Hz 内核传 |
 |---|---|---|---|
@@ -394,8 +389,7 @@ uint32_t   osKernelGetTickFreq(void);        /* 查询内核 tick 频率（Hz）
 tick 数 = 毫秒数 × osKernelGetTickFreq() / 1000
 ```
 
-用 `osKernelGetTickFreq()` 现场查询而不是写死 1000，保证组件在 1000Hz（WS63）
-和 100Hz（树内核 qemu riscv32 产品）上都正确延时 1000ms。
+用 `osKernelGetTickFreq()` 现场查询而不是写死 1000，保证组件在 1000Hz（WS63）和 100Hz（树内核 qemu riscv32 产品）上都正确延时 1000ms。
 
 ##### `osThreadNew` —— 创建线程
 
@@ -409,23 +403,3 @@ osThreadId_t osThreadNew(osThreadFunc_t func, void *argument, const osThreadAttr
 | argument | 传给线程函数的参数（本组件传 NULL） |
 | attr | 线程属性，NULL = 全默认；本组件显式传属性 |
 | 返回 | 线程句柄；**NULL = 创建失败** |
-
-**`osThreadAttr_t` 九字段逐字段**（本组件按位序初始化）：
-
-```c
-osThreadAttr_t taskAttr = {
-    "BlackBoxTask",      /* ① name        线程名（调试、任务列表里显示） */
-    0,                   /* ② attr_bits   属性位（0 = 无特殊） */
-    NULL,                /* ③ cb_mem      线程控制块内存（NULL = 内核分配） */
-    0,                   /* ④ cb_size     控制块大小（随 cb_mem，0 = 默认） */
-    NULL,                /* ⑤ stack_mem   栈内存（NULL = 内核分配） */
-    BLACKBOX_TASK_STACK_SIZE, /* ⑥ stack_size 栈大小：0x1000 = 4096 字节 */
-    osPriorityNormal,    /* ⑦ priority    优先级：24（与 LiteOS 默认一致） */
-    0,                   /* ⑧ tz_module   信任区模块（安全扩展，普通场景 0） */
-    0                    /* ⑨ reserved    保留字段（个别内核用作 affinity_mask） */
-};
-```
-
-**启动前创建线程安全吗？**
-安全。树内核的 osThreadNew 底层是 `LOS_TaskCreate`，它在调度器未启动时只是把任务
-登记进就绪队列，`osKernelStart()` 后才真正运行——与改造前 pthread_create 的行为完全一致。
