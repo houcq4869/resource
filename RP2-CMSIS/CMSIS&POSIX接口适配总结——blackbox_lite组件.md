@@ -160,15 +160,46 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 - **启动前创建信号量/线程，敢不敢？** 敢。`osThreadNew` 底层是 `LOS_TaskCreate`，调度器没转起来时只是把任务登记进就绪队列，`osKernelStart()` 之后才真正运行——与原来 `pthread_create` 的行为完全一致；
 - **启动前调 `osDelay` 会怎样？** 树内核里会退化成空转桩。但本组件的 `osDelay` 只出现在运行时路径（错误通知、后台线程体），CORE_INIT钩子里没人调它，不受影响。
 
-#### 顺手清理的三件事
+### 适配清单
 
-适配主线之外，三件"早就该做"的清理一并完成：
+#### blackbox_core.c
 
-| 事项 | 内容 | 理由 |
-|---|---|---|
-| 公开头去污染 | kits/innerkits两份 `blackbox_adapter.h` 删3行LOS extern声明 | 公开头只该声明组件自己的API；全树核查过无人使用 |
-| 兜底宏退场 | 删局部 `#define LOS_WAIT_FOREVER ...` 一组复制品 | 内核常量复制品随LOS接口一并退场，改用标准常量 |
-| 构建接线 | BUILD.gn include_dirs **首位**加 `//third_party/cmsis/CMSIS/RTOS2/Include`；bundle.json 补 `third_party: ["cmsis"]` | 首位保证优先命中标准头；**刻意不dep树内核**——nearlink_dk_3863用预编译内核，dep树内核目标会把整棵内核误拉进构建 |
+| #   | 位置                  | 原接口                                                    | 新接口                                                                       | 接口说明         | 修改方案                                                                                                    |
+| --- | ------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------- |
+| 1   | :19                 | `#include "pthread.h"`                                 | `#include "cmsis_os2.h"`                                                  | POSIX线程头文件引入 | 头文件替换，pthread.h -> cmsis_os2.h                                                                          |
+| 2   | :26-28              | LOS_WAIT_FOREVER=0xFFFFFFFF / LOS_NO_WAIT=0 / LOS_OK=0 | osWaitForever / 0U / osOK                                                 | 内核常量复制定义     | 删除 LOS_WAIT_FOREVER / LOS_NO_WAIT / LOS_OK                                                              |
+| 3   | :39                 | `static unsigned int g_opsListSem`                     | `static osSemaphoreId_t g_opsListSem`                                     | 信号量句柄类型      | 句柄类型改为CMSIS句柄，unsigned int -> osSemaphoreId_t                                                           |
+| 4   | :99                 | `LOS_Msleep(LOG_ROOT_DIR_WAIT_TIME)`                   | `osDelay(LOG_ROOT_DIR_WAIT_TIME * osKernelGetTickFreq() / MS_PER_SECOND)` | 毫秒级任务延时      | 原LOS_Msleep参数为毫秒，osDelay参数为tick数，需要按osKernelGetTickFreq()换算，即tick = 毫秒 * 频率 / MS_PER_SECOND             |
+| 5   | :150 / :214         | `LOS_SemPend(sem, LOS_WAIT_FOREVER) != 0`              | `osSemaphoreAcquire(sem, osWaitForever) != osOK`                          | 阻塞等待信号量      | 修改两处，参数LOS_WAIT_FOREVER -> osWaitForever，判断返回值0 -> osOK                                                 |
+| 6   | :261                | `LOS_SemPend(sem, LOS_NO_WAIT) != 0`                   | `osSemaphoreAcquire(sem, 0U) != osOK`                                     | 非阻塞等待信号量     | 修改一处，参数LOS_NO_WAIT -> 0U，判断返回值0 -> osOK                                                                 |
+| 7   | :177/:225/:234/:294 | `LOS_SemPost(sem)`                                     | `osSemaphoreRelease(sem)`                                                 | 释放信号量        | 修改四处                                                                                                    |
+| 8   | :314                | `LOS_BinarySemCreate(1, &sem) != LOS_OK`               | `sem = osSemaphoreNew(1, 1, NULL); 判 NULL`                                | 二元信号量创建      | max_cout参数=1，即设置二元信号量，等价于LOS_BinarySemCreate，LOS是返回错误码+出参句柄，CMSIS直接返回句柄，NULL判断失败，判定由!=LOS_OK -> ==NULL  |
+| 9   | :320                | `pthread_create(&tid, NULL, SaveErrorLog, NULL)`       | `osThreadNew(SaveErrorLog, NULL, NULL) == NULL`                           | 后台故障日志保存线程创建 | 线程创建等价替换，CMSIS线程函数标准签名void func(void*)，SaveErrorLog签名void* -> void，return NULL -> return，属性传NULL使用内核默认值 |
+
+#### 公开头与构建
+
+| #   | 位置                           | 原接口                     | 新接口                                                         | 修改方案                                                  |
+| --- | ---------------------------- | ----------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| 10  | kits/blackbox_adapter.h      | 3 行 LOS_ 内核函数 extern 声明 | /                                                           | 公开头只应声明组件自己的 API，内核声明属于接口污染                           |
+| 11  | innerkits/blackbox_adapter.h | 同上                      | /                                                           | 两份头文件保持一致                                             |
+| 12  | BUILD.gn :26                 | 无 cmsis 头文件路径           | include_dirs 首位新增 `//third_party/cmsis/CMSIS/RTOS2/Include` | 提供 cmsis_os2.h 搜索路径；放首位保证优先命中；不 dep 树内核（预编译内核产品会被误拉入） |
+| 13  | bundle.json :26-27           | `"third_party": []`     | `"third_party": ["cmsis"]`                                  | 依赖元数据补全，纯声明无编译影响                                      |
+
+
+**组件文件（改造后）**：
+- `base/hiviewdfx/blackbox_lite/blackbox_core.c`（核心逻辑）
+- `base/hiviewdfx/blackbox_lite/blackbox_adapter.c`（平台适配层）
+- `base/hiviewdfx/blackbox_lite/blackbox_detector.c/.h`（上传桩）
+- `base/hiviewdfx/blackbox_lite/interfaces/native/kits/blackbox.h`（对外 API + 数据结构）
+- `base/hiviewdfx/blackbox_lite/interfaces/native/{kits,innerkits}/blackbox_adapter.h`（平台接口声明）
+- `base/hiviewdfx/blackbox_lite/BUILD.gn`、`bundle.json`
+
+**接口参考**：
+- CMSIS-RTOS2 标准头：`third_party/cmsis/CMSIS/RTOS2/Include/cmsis_os2.h`
+  （osWaitForever:193、osThreadNew:429、osDelay:586、osSemaphoreNew:715、osSemaphoreAcquire:726、osSemaphoreRelease:731）
+- 树内核 CMSIS 实现：`kernel/liteos_m/kal/cmsis/cmsis_liteos2.c`（osThreadNew:246、osDelay:643、osSemaphoreNew:1120）
+- LiteOS 信号量头：`los_sem.h`（LOS_BinarySemCreate:213、LOS_SemPend:273、错误码 :130/:140）
+- LiteOS 基础头：`los_base.h`（LOS_NO_WAIT:84、LOS_WAIT_FOREVER:90、LOS_Msleep:287）
 
 ### 改动面一览
 
