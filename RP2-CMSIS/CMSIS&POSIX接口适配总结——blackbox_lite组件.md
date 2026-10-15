@@ -139,10 +139,11 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 
 #### 语义时序等价论证
 
-黑盒的初始化跑在 **CORE_INIT阶段——调度器还没启动**。有两个时序问题必须提前论证，不能等跑飞了再查：
-
-- **启动前创建信号量/线程，敢不敢？** 敢。`osThreadNew` 底层是 `LOS_TaskCreate`，调度器没转起来时只是把任务登记进就绪队列，`osKernelStart()` 之后才真正运行——与原来 `pthread_create` 的行为完全一致；
-- **启动前调 `osDelay` 会怎样？** 树内核里会退化成空转桩。但本组件的 `osDelay` 只出现在运行时路径（错误通知、后台线程体），CORE_INIT钩子里没人调它，不受影响。
+黑盒的初始化跑在 **CORE_INIT阶段——调度器还没启动**。存在时序问题论证：
+- **启动前创建信号量/线程？**
+	- `osThreadNew` 底层是 `LOS_TaskCreate`，调度器没转起来时只是把任务登记进就绪队列，`osKernelStart()` 之后才真正运行——与原来 `pthread_create` 的行为完全一致；
+- **启动前调 `osDelay` ？** 
+	- 树内核里会退化成空转桩。但本组件的 `osDelay` 只出现在运行时路径（错误通知、后台线程体），CORE_INIT钩子里没人调它，不受影响。
 
 ### 适配清单
 
@@ -169,7 +170,6 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 | 12  | BUILD.gn :26                 | 无 cmsis 头文件路径           | include_dirs 首位新增 `//third_party/cmsis/CMSIS/RTOS2/Include` | 提供 cmsis_os2.h 搜索路径；放首位保证优先命中；不 dep 树内核（预编译内核产品会被误拉入） |
 | 13  | bundle.json :26-27           | `"third_party": []`     | `"third_party": ["cmsis"]`                                  | 依赖元数据补全，纯声明无编译影响                                      |
 
-
 **组件文件（改造后）**：
 - `base/hiviewdfx/blackbox_lite/blackbox_core.c`（核心逻辑）
 - `base/hiviewdfx/blackbox_lite/blackbox_adapter.c`（平台适配层）
@@ -185,31 +185,28 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 - LiteOS 信号量头：`los_sem.h`（LOS_BinarySemCreate:213、LOS_SemPend:273、错误码 :130/:140）
 - LiteOS 基础头：`los_base.h`（LOS_NO_WAIT:84、LOS_WAIT_FOREVER:90、LOS_Msleep:287）
 
+**总结：**
+- 5个文件、13处改动，**业务逻辑零变化**，对外API（`BBoxRegisterModuleOps` / `BBoxNotifyError` / `struct ModuleOps`）零变化——下游无感知：
 
-5个文件、13处改动，**业务逻辑零变化**，对外API（`BBoxRegisterModuleOps` / `BBoxNotifyError` / `struct ModuleOps`）零变化——下游无感知：
+| 文件                                    | 改动              | 性质     |
+| ------------------------------------- | --------------- | ------ |
+| `blackbox_core.c`                     | 9处接口替换 + 线程签名调整 | 唯一改动逻辑 |
+| kits / innerkits `blackbox_adapter.h` | 各删3行LOS声明       | 接口清理   |
+| `BUILD.gn`                            | +1行include      | 构建接线   |
+| `bundle.json`                         | 补cmsis依赖        | 纯元数据声明 |
 
-| 文件 | 改动 | 性质 |
-|---|---|---|
-| `blackbox_core.c` | 9处接口替换 + 线程签名调整 | 唯一动逻辑的文件（333行→323行） |
-| kits / innerkits `blackbox_adapter.h` | 各删3行LOS声明 | 接口清理 |
-| `BUILD.gn` | +1行include | 构建接线 |
-| `bundle.json` | 补cmsis依赖 | 纯元数据声明 |
+## 结论&PR
 
+**PR：**
+- [OH master分支PR](https://gitcode.com/openharmony/hiviewdfx_blackbox_lite/pull/28)
+- [OH 6.1 LTS分支PR](https://gitcode.com/openharmony/hiviewdfx_blackbox_lite/pull/29)
 
-编译通过只是底线，这次做了三层验证：
-
+**编译通过&三层验证：**
 1. **编译**：nearlink_dk_3863（WS63预编译内核产品）build success；
 2. **符号**：nm扫描 `libblackbox_lite.a`——`los_` 前缀残留 **0个**；6个os\*符号全部为U（未定义，待内核解析），且预编译内核的固件符号清单里**提前**核实过这6个符号都存在；
 3. **头文件命中**：重生成的ninja里 `-I third_party/cmsis` 排在SDK各cmsis副本之前，`cmsis_os2.h` 命中符合预期。
 
-行为层面另有5条等价性论证（信号量同底、P/V同义、延时更准、线程同行为、错误路径逐条保留），评审时逐条过。**"纯接口替换"类改造，等价性是论证出来的，不是测出来的**——这算是一条方法论。
-
-## 结论&PR
-
-[OH master分支PR](https://gitcode.com/openharmony/hiviewdfx_blackbox_lite/pull/28)
-[OH 6.1 LTS分支PR](https://gitcode.com/openharmony/hiviewdfx_blackbox_lite/pull/29)
-
-**一句话总结**：mini-only组件的CMSIS适配 = 定范围（单套实现）→ 摸家底（调用点全集中在一个文件）→ 建映射（6组一对一）→ 盯住三处真差异（tick单位/句柄风格/线程签名）→ 论证时序安全 → 符号级验证。真正需要动脑的环节不到两成，剩下的是严谨的体力活。
+**总结**：mini-only组件的CMSIS适配 = 单套实现 → 调用点全集中在一个文件 → 6组接口一对一映射 →  tick单位/句柄风格/线程签名差异 → 论证时序安全 → 符号级验证。
 
 ## 附录
 
@@ -277,7 +274,6 @@ flowchart TD
 
 ### 接口分析
 
-
 #### LiteOS 接口
 
 ##### `LOS_BinarySemCreate` —— 创建二元信号量
@@ -309,7 +305,6 @@ UINT32 LOS_SemPend(UINT32 semHandle, UINT32 timeout);
 
 （`LOS_NO_WAIT`/`LOS_WAIT_FOREVER` 定义于内核 `los_base.h:84/90`。）
 
-
 ##### `LOS_SemPost` —— V 操作
 
 ```c
@@ -319,7 +314,6 @@ UINT32 LOS_SemPost(UINT32 semHandle);
 | 项 | 说明 |
 |---|---|
 | 返回 | LOS_OK；`LOS_ERRNO_SEM_OVERFLOW` = 令牌已满还硬还（二元信号量上重复释放） |
-
 
 ##### `LOS_Msleep` —— 毫秒延时
 
@@ -340,7 +334,6 @@ VOID LOS_Msleep(UINT32 msecs);      /* los_base.h:287 */
 ```c
 typedef struct os_semaphore_def *osSemaphoreId_t;   /* 本质是指针 */
 ```
-
 
 ##### `osSemaphoreNew` —— 创建信号量
 
@@ -380,8 +373,6 @@ osStatus_t osSemaphoreAcquire(osSemaphoreId_t semaphore_id, uint32_t timeout);
 > 细节提醒：`osWaitForever` 的值 `0xFFFFFFFFU` 与旧代码里 `LOS_WAIT_FOREVER` 的
 > `0xFFFFFFFF` **数值一模一样**——只是常数搬了家（从内核头文件搬到 CMSIS 标准头）。
 
-
-
 ##### `osSemaphoreRelease` —— V 操作
 
 ```c
@@ -390,7 +381,6 @@ osStatus_t osSemaphoreRelease(osSemaphoreId_t semaphore_id);
 
 成功返回 `osOK`；**令牌已满**时返回 `osErrorResource`（对应 LOS 的 SEM_OVERFLOW）。
 本组件 4 处释放全部有"同函数内先成功 Acquire"的前置条件，满员释放路径不可达。
-
 
 ##### `osDelay` & `osKernelGetTickFreq`
 
