@@ -26,8 +26,7 @@ graph TB
     end
 ```
 
-
-#### blackbox_lite组件介绍
+### 组件介绍
 
 **blackbox_lite组件**类似黑匣子：
 
@@ -64,7 +63,7 @@ graph LR
 
 这也是本次改造一个关键的观察：**内核接口全部集中在 `blackbox_core.c` 一个源文件里，适配层根本不碰内核**——改动面天然收敛。
 
-数据结构、启动时序、运行场景的细节见文末[[#附录：组件分析]]。
+数据结构、启动时序、运行场景的细节见文末附录。
 
 ## 适配分析
 
@@ -81,8 +80,6 @@ flowchart LR
 ```
 
 #### 判断改造形态
-
-见上文——mini-only，单套CMSIS，无分支。**这一步放在最前面**，因为它直接决定后续所有动作的复杂度；如果当初判断错（比如其实有small共编），后面全部返工。
 
 **blackbox_lite组件接口分析**
 - **形态判断**：查 `bundle.json`，`adapted_system_type` 只有 `"mini"`
@@ -101,11 +98,7 @@ flowchart LR
 | 线程创建 | `pthread_create` | 1 |
 | 头文件/兜底宏 | `pthread.h`、局部LOS常量定义 | 2 |
 
-另外两处"藏得深"的也要翻出来：两份公开头里抄的3行LOS函数声明（接口污染），以及bundle.json里缺失的第三方依赖声明。**盘点宁可多花十分钟，也不要改到一半发现漏了一处。**
-
 #### 接口一对一映射
-
-6组接口一对一，先列总表再动手：
 
 | 原接口 | 新接口 | 功能 |
 |---|---|---|
@@ -116,18 +109,14 @@ flowchart LR
 | `LOS_Msleep(ms)` | `osDelay(ms * osKernelGetTickFreq() / 1000)` | 延时 |
 | `pthread_create(&tid, NULL, fn, NULL)` | `osThreadNew(fn, NULL, &attr)` | 创建线程 |
 
-替换前先确认过几个"宽心点"，不是拍脑袋就换：
-
-- `osSemaphoreNew` 的 max_count=1 就是二元信号量，而且树内核实现里 max==1 时底层**就是** `LOS_BinarySemCreate`——不是"功能相似"，是同一个内核对象；
+**注意：**
+- `osSemaphoreNew` 的 max_count=1 就是二元信号量，而且树内核实现里 max == 1 时底层即是  LOS_BinarySemCreate，是同一个内核对象；
 - `osWaitForever`（0xFFFFFFFF）和 `LOS_WAIT_FOREVER` 数值一模一样，常数只是从内核头文件搬到了标准头；
 - `osOK` 就是0，判错写法 `!= osOK` 和原来的 `!= 0` 完全等价。
 
 #### 改造核心点分析
 
-映射表大部分是机械替换，但有三处不能无脑改——**这三处才是本次改造的核心知识点**：
-
-**1. `osDelay` 的单位是tick，不是毫秒（唯一的"算法级"改动）**
-
+**1. `osDelay` 的单位是tick，不是毫秒**
 `LOS_Msleep` 传毫秒，`osDelay` 传tick数。同样想延时1秒：
 
 | 接口 | 单位 | 1000Hz内核（WS63） | 100Hz内核 |
@@ -136,20 +125,17 @@ flowchart LR
 | `osDelay` | **tick** | 传1000 | **传100**（不换算就差10倍） |
 
 所以必须按内核频率换算：
+（通过频率现场查询，组件才能在1000Hz和100Hz的产品上都精确延时。如果在WS63上直接把1000传给osDelay会碰巧正确，换到别的产品就错10倍，且没有任何编译期报错。）
 
 ```
-tick 数 = 毫秒数 × osKernelGetTickFreq() / 1000
+tick 数 = 毫秒数 × osKernelGetTickFreq() / MS_PER_SECOND
 ```
-
-频率**现场查询、不写死**——组件才能在1000Hz和100Hz的产品上都精确延时。这是整个改造里最容易踩的坑：在WS63上直接把1000传给osDelay"碰巧是对的"，换到别的产品就错10倍，而且没有任何编译期报错。
 
 **2. 句柄风格：出参式 → 返回值式**
-
 LOS是"返回错误码 + 指针出参写句柄"，CMSIS是"直接返回句柄，NULL判失败"。两种风格无优劣，改代码时把判定从 `!= LOS_OK` 换成 `== NULL` 即可，语义完全一致。
 
 **3. 线程函数签名**
-
-CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 是 `void* func(void *)`——不改会触发编译告警。顺手把原来pthread传NULL的"全默认属性"显式化成 `osThreadAttr_t`（线程名 BlackBoxTask / 栈 0x1000 / 优先级 osPriorityNormal），取值都对齐LiteOS默认，行为不变、可读性更好。
+CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 是 `void* func(void *)`——不改会触发编译告警。
 
 #### 语义时序等价论证
 
@@ -162,17 +148,17 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 
 #### blackbox_core.c
 
-| #   | 位置                  | 原接口                                                    | 新接口                                                                       | 接口说明         | 修改方案                                                                                                    |
-| --- | ------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------- |
-| 1   | :19                 | `#include "pthread.h"`                                 | `#include "cmsis_os2.h"`                                                  | POSIX线程头文件引入 | 头文件替换，pthread.h -> cmsis_os2.h                                                                          |
-| 2   | :26-28              | LOS_WAIT_FOREVER=0xFFFFFFFF / LOS_NO_WAIT=0 / LOS_OK=0 | osWaitForever / 0U / osOK                                                 | 内核常量复制定义     | 删除 LOS_WAIT_FOREVER / LOS_NO_WAIT / LOS_OK                                                              |
-| 3   | :39                 | `static unsigned int g_opsListSem`                     | `static osSemaphoreId_t g_opsListSem`                                     | 信号量句柄类型      | 句柄类型改为CMSIS句柄，unsigned int -> osSemaphoreId_t                                                           |
-| 4   | :99                 | `LOS_Msleep(LOG_ROOT_DIR_WAIT_TIME)`                   | `osDelay(LOG_ROOT_DIR_WAIT_TIME * osKernelGetTickFreq() / MS_PER_SECOND)` | 毫秒级任务延时      | 原LOS_Msleep参数为毫秒，osDelay参数为tick数，需要按osKernelGetTickFreq()换算，即tick = 毫秒 * 频率 / MS_PER_SECOND             |
-| 5   | :150 / :214         | `LOS_SemPend(sem, LOS_WAIT_FOREVER) != 0`              | `osSemaphoreAcquire(sem, osWaitForever) != osOK`                          | 阻塞等待信号量      | 修改两处，参数LOS_WAIT_FOREVER -> osWaitForever，判断返回值0 -> osOK                                                 |
-| 6   | :261                | `LOS_SemPend(sem, LOS_NO_WAIT) != 0`                   | `osSemaphoreAcquire(sem, 0U) != osOK`                                     | 非阻塞等待信号量     | 修改一处，参数LOS_NO_WAIT -> 0U，判断返回值0 -> osOK                                                                 |
-| 7   | :177/:225/:234/:294 | `LOS_SemPost(sem)`                                     | `osSemaphoreRelease(sem)`                                                 | 释放信号量        | 修改四处                                                                                                    |
-| 8   | :314                | `LOS_BinarySemCreate(1, &sem) != LOS_OK`               | `sem = osSemaphoreNew(1, 1, NULL); 判 NULL`                                | 二元信号量创建      | max_cout参数=1，即设置二元信号量，等价于LOS_BinarySemCreate，LOS是返回错误码+出参句柄，CMSIS直接返回句柄，NULL判断失败，判定由!=LOS_OK -> ==NULL  |
-| 9   | :320                | `pthread_create(&tid, NULL, SaveErrorLog, NULL)`       | `osThreadNew(SaveErrorLog, NULL, NULL) == NULL`                           | 后台故障日志保存线程创建 | 线程创建等价替换，CMSIS线程函数标准签名void func(void*)，SaveErrorLog签名void* -> void，return NULL -> return，属性传NULL使用内核默认值 |
+| #   | 位置                  | 原接口                                                      | 新接口                                                                       | 接口说明         | 修改方案                                                                                                    |
+| --- | ------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------- |
+| 1   | :19                 | `#include "pthread.h"`                                   | `#include "cmsis_os2.h"`                                                  | POSIX线程头文件引入 | 头文件替换，pthread.h -> cmsis_os2.h                                                                          |
+| 2   | :26-28              | `LOS_WAIT_FOREVER=0xFFFFFFFF / LOS_NO_WAIT=0 / LOS_OK=0` | `osWaitForever / 0U / osOK`                                               | 内核常量复制定义     | 删除 LOS_WAIT_FOREVER / LOS_NO_WAIT / LOS_OK                                                              |
+| 3   | :39                 | `static unsigned int g_opsListSem`                       | `static osSemaphoreId_t g_opsListSem`                                     | 信号量句柄类型      | 句柄类型改为CMSIS句柄，unsigned int -> osSemaphoreId_t                                                           |
+| 4   | :99                 | `LOS_Msleep(LOG_ROOT_DIR_WAIT_TIME)`                     | `osDelay(LOG_ROOT_DIR_WAIT_TIME * osKernelGetTickFreq() / MS_PER_SECOND)` | 毫秒级任务延时      | 原LOS_Msleep参数为毫秒，osDelay参数为tick数，需要按osKernelGetTickFreq()换算，即tick = 毫秒 * 频率 / MS_PER_SECOND             |
+| 5   | :150 / :214         | `LOS_SemPend(sem, LOS_WAIT_FOREVER) != 0`                | `osSemaphoreAcquire(sem, osWaitForever) != osOK`                          | 阻塞等待信号量      | 修改两处，参数LOS_WAIT_FOREVER -> osWaitForever，判断返回值0 -> osOK                                                 |
+| 6   | :261                | `LOS_SemPend(sem, LOS_NO_WAIT) != 0`                     | `osSemaphoreAcquire(sem, 0U) != osOK`                                     | 非阻塞等待信号量     | 修改一处，参数LOS_NO_WAIT -> 0U，判断返回值0 -> osOK                                                                 |
+| 7   | :177/:225/:234/:294 | `LOS_SemPost(sem)`                                       | `osSemaphoreRelease(sem)`                                                 | 释放信号量        | 修改四处                                                                                                    |
+| 8   | :314                | `LOS_BinarySemCreate(1, &sem) != LOS_OK`                 | `sem = osSemaphoreNew(1, 1, NULL); 判 NULL`                                | 二元信号量创建      | max_cout参数=1，即设置二元信号量，等价于LOS_BinarySemCreate，LOS是返回错误码+出参句柄，CMSIS直接返回句柄，NULL判断失败，判定由!=LOS_OK -> ==NULL  |
+| 9   | :320                | `pthread_create(&tid, NULL, SaveErrorLog, NULL)`         | `osThreadNew(SaveErrorLog, NULL, NULL) == NULL`                           | 后台故障日志保存线程创建 | 线程创建等价替换，CMSIS线程函数标准签名void func(void*)，SaveErrorLog签名void* -> void，return NULL -> return，属性传NULL使用内核默认值 |
 
 #### 公开头与构建
 
@@ -225,7 +211,9 @@ CMSIS规定线程函数签名必须是 `void func(void *)`，原 `SaveErrorLog` 
 
 **一句话总结**：mini-only组件的CMSIS适配 = 定范围（单套实现）→ 摸家底（调用点全集中在一个文件）→ 建映射（6组一对一）→ 盯住三处真差异（tick单位/句柄风格/线程签名）→ 论证时序安全 → 符号级验证。真正需要动脑的环节不到两成，剩下的是严谨的体力活。
 
-## 附录：组件分析
+## 附录
+
+### 组件分析
 
 #### 数据结构三件
 
@@ -286,3 +274,176 @@ flowchart TD
 | `interfaces/native/kits/blackbox.h` | 对外API + 数据结构 |
 | `interfaces/native/{kits,innerkits}/blackbox_adapter.h` | 平台接口声明（两份副本同步维护） |
 | `BUILD.gn` / `bundle.json` | 构建脚本 / 组件元数据 |
+
+### 接口分析
+
+
+#### LiteOS 接口
+
+##### `LOS_BinarySemCreate` —— 创建二元信号量
+
+```c
+UINT32 LOS_BinarySemCreate(UINT16 count, UINT32 *semHandle);
+```
+
+| 项            | 说明                                  |
+| ------------ | ----------------------------------- |
+| 参数 count     | **初始令牌数**：1 = 创建时令牌可用；0 = 创建时令牌已被占用 |
+| 参数 semHandle | **出参**：函数把信号量句柄写回这个指针指向的变量          |
+| 返回           | LOS_OK(0) 成功；其他为错误码                 |
+| "二元"含义       | 信号量令牌上限 = 1（要么 0 要么 1，就像只有 1 个车位）   |
+
+**注意**：句柄是"出参"模式——先声明 `unsigned int sem;`，把 `&sem` 传进去，函数成功后在 `sem` 里拿句柄。
+
+##### `LOS_SemPend` —— P 操作
+
+```c
+UINT32 LOS_SemPend(UINT32 semHandle, UINT32 timeout);
+```
+
+| 项            | 说明                                                                               |
+| ------------ | -------------------------------------------------------------------------------- |
+| 参数 semHandle | 创建时拿到的句柄                                                                         |
+| 参数 timeout   | **毫秒**。三个特殊值：`LOS_NO_WAIT`(0)=非阻塞；`LOS_WAIT_FOREVER`(0xFFFFFFFF)=永久阻塞；N=最多等 N 毫秒 |
+| 返回           | LOS_OK 拿到令牌；`LOS_ERRNO_SEM_TIMEOUT` 超时没拿到；其他错误码                                  |
+
+（`LOS_NO_WAIT`/`LOS_WAIT_FOREVER` 定义于内核 `los_base.h:84/90`。）
+
+
+##### `LOS_SemPost` —— V 操作
+
+```c
+UINT32 LOS_SemPost(UINT32 semHandle);
+```
+
+| 项 | 说明 |
+|---|---|
+| 返回 | LOS_OK；`LOS_ERRNO_SEM_OVERFLOW` = 令牌已满还硬还（二元信号量上重复释放） |
+
+
+##### `LOS_Msleep` —— 毫秒延时
+
+```c
+VOID LOS_Msleep(UINT32 msecs);      /* los_base.h:287 */
+```
+
+| 项 | 说明 |
+|---|---|
+| 参数 | **毫秒数**（M 就是 ms 的意思） |
+| 效果 | 当前任务挂起（让出 CPU 去睡觉），时间到再被唤醒 |
+| 单位 | **毫秒** ← 记住这个，和 CMSIS 的 osDelay（tick）不同！ |
+
+#### CMSIS-RTOS2 接口
+
+##### `osSemaphoreId_t` —— 信号量句柄类型
+
+```c
+typedef struct os_semaphore_def *osSemaphoreId_t;   /* 本质是指针 */
+```
+
+
+##### `osSemaphoreNew` —— 创建信号量
+
+```c
+osSemaphoreId_t osSemaphoreNew(uint32_t max_count, uint32_t initial_count,
+                               const osSemaphoreAttr_t *attr);
+```
+
+| 参数 | 说明 |
+|---|---|
+| max_count | 令牌上限。**=1 即二元信号量**（等价 LOS_BinarySemCreate） |
+| initial_count | 初始令牌数（本组件传 1 = 一上来令牌可用） |
+| attr | 属性（名称等），NULL = 默认 |
+| 返回 | 句柄；**NULL = 创建失败** |
+
+对比 LOS 版：LOS 是"返回错误码 + 出参句柄"，CMSIS 是"直接返回句柄，NULL 判失败"。
+两种风格无优劣，改代码时把判定从 `!= LOS_OK` 换成 `== NULL` 即可，语义完全一致。
+树内核 LiteOS-M 的实现里，`max_count == 1` 时内部就是调用 `LOS_BinarySemCreate`
+（`kernel/liteos_m/kal/cmsis/cmsis_liteos2.c:1120`），所以底层是同一个东西。
+
+##### `osSemaphoreAcquire` —— P 操作
+
+```c
+osStatus_t osSemaphoreAcquire(osSemaphoreId_t semaphore_id, uint32_t timeout);
+```
+
+| 参数 | 说明 |
+|---|---|
+| semaphore_id | 句柄 |
+| timeout | **tick 数**：`osWaitForever`(0xFFFFFFFFU)=永久阻塞；**0=非阻塞**；N=最多等 N tick |
+| 返回 | 枚举 `osStatus_t`：`osOK`(0) 成功；`osErrorTimeout` 超时；`osErrorResource` 资源错；`osErrorParameter` 参数错 |
+
+**本组件三处调用**：
+- `osSemaphoreAcquire(sem, osWaitForever)` ×2（后台线程、注册路径）——永久等；
+- `osSemaphoreAcquire(sem, 0U)` ×1（通知路径）——非阻塞。
+
+> 细节提醒：`osWaitForever` 的值 `0xFFFFFFFFU` 与旧代码里 `LOS_WAIT_FOREVER` 的
+> `0xFFFFFFFF` **数值一模一样**——只是常数搬了家（从内核头文件搬到 CMSIS 标准头）。
+
+
+
+##### `osSemaphoreRelease` —— V 操作
+
+```c
+osStatus_t osSemaphoreRelease(osSemaphoreId_t semaphore_id);
+```
+
+成功返回 `osOK`；**令牌已满**时返回 `osErrorResource`（对应 LOS 的 SEM_OVERFLOW）。
+本组件 4 处释放全部有"同函数内先成功 Acquire"的前置条件，满员释放路径不可达。
+
+
+##### `osDelay` & `osKernelGetTickFreq`
+
+```c
+osStatus_t osDelay(uint32_t ticks);          /* 延时 ticks 个 tick */
+uint32_t   osKernelGetTickFreq(void);        /* 查询内核 tick 频率（Hz） */
+```
+
+**单位差异（必考）**：
+
+| 接口 | 单位 | 想延时 1 秒在 1000Hz 内核传 | 在 100Hz 内核传 |
+|---|---|---|---|
+| `LOS_Msleep` | 毫秒 | 1000 | 1000（内核自动换算） |
+| `osDelay` | **tick** | 1000 | **100**（自己换算，否则差 10 倍） |
+
+**换算公式**（本组件 9.3 节用到的就是这个）：
+
+```
+tick 数 = 毫秒数 × osKernelGetTickFreq() / 1000
+```
+
+用 `osKernelGetTickFreq()` 现场查询而不是写死 1000，保证组件在 1000Hz（WS63）
+和 100Hz（树内核 qemu riscv32 产品）上都正确延时 1000ms。
+
+##### `osThreadNew` —— 创建线程
+
+```c
+osThreadId_t osThreadNew(osThreadFunc_t func, void *argument, const osThreadAttr_t *attr);
+```
+
+| 参数 | 说明 |
+|---|---|
+| func | 线程函数。**规定签名 `void func(void *)`**——本组件因此把 SaveErrorLog 从 `void*` 改成 `void` |
+| argument | 传给线程函数的参数（本组件传 NULL） |
+| attr | 线程属性，NULL = 全默认；本组件显式传属性 |
+| 返回 | 线程句柄；**NULL = 创建失败** |
+
+**`osThreadAttr_t` 九字段逐字段**（本组件按位序初始化）：
+
+```c
+osThreadAttr_t taskAttr = {
+    "BlackBoxTask",      /* ① name        线程名（调试、任务列表里显示） */
+    0,                   /* ② attr_bits   属性位（0 = 无特殊） */
+    NULL,                /* ③ cb_mem      线程控制块内存（NULL = 内核分配） */
+    0,                   /* ④ cb_size     控制块大小（随 cb_mem，0 = 默认） */
+    NULL,                /* ⑤ stack_mem   栈内存（NULL = 内核分配） */
+    BLACKBOX_TASK_STACK_SIZE, /* ⑥ stack_size 栈大小：0x1000 = 4096 字节 */
+    osPriorityNormal,    /* ⑦ priority    优先级：24（与 LiteOS 默认一致） */
+    0,                   /* ⑧ tz_module   信任区模块（安全扩展，普通场景 0） */
+    0                    /* ⑨ reserved    保留字段（个别内核用作 affinity_mask） */
+};
+```
+
+**启动前创建线程安全吗？**
+安全。树内核的 osThreadNew 底层是 `LOS_TaskCreate`，它在调度器未启动时只是把任务
+登记进就绪队列，`osKernelStart()` 后才真正运行——与改造前 pthread_create 的行为完全一致。
