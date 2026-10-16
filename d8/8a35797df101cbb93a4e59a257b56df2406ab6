@@ -1,0 +1,39 @@
+Games/仁王2/00-总览与快速上手.md
+  s_a8a607b0752fef::t_58f2fd99b0741e 4
+  s_a8a607b0752fef::t_2c4728c8a229c0 1-3,5-62
+Games/仁王2/01-核心战斗机制.md
+  s_a8a607b0752fef::t_db66a64dc36600 1-150
+Games/仁王2/02-装备与Build.md
+  s_a8a607b0752fef::t_47dee4b8442ce1 1-114
+Games/仁王2/04-资料附录.md
+  s_a8a607b0752fef::t_f66524817aeced 1-123
+Games/仁王2/03-流程与BOSS攻略.md
+  s_a8a607b0752fef::t_0c9db4a0c7601d 1-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.3",
+  "base_commit_sha": "d88a35797df101cbb93a4e59a257b56df2406ab6",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_a8a607b0752fef": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ebc2d4bf0ffepJLbd0fbuK0tl2",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "custom_attributes": {
+        "stats_model_totals": "{\"glm-5.3\":{\"additions\":590,\"deletions\":1}}",
+        "stats_total_additions": "590",
+        "stats_total_deletions": "1",
+        "stats_turn_models": "{\"t_0c9db4a0c7601d\":\"glm-5.3\",\"t_2c4728c8a229c0\":\"glm-5.3\",\"t_47dee4b8442ce1\":\"glm-5.3\",\"t_58f2fd99b0741e\":\"glm-5.3\",\"t_db66a64dc36600\":\"glm-5.3\",\"t_f66524817aeced\":\"glm-5.3\"}"
+      }
+    }
+  }
+}
