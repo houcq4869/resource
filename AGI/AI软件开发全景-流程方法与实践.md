@@ -118,11 +118,11 @@ Agentic 时代的关键判断（学术界表述）：**生产力悖论**——�
 
 Fowler 团队的 Spec 生命周期三分法已是标准语言：
 
-| 层次 | 含义 | 代表 |
-|---|---|---|
-| **Spec-first** | 用完即弃 | Spec Kit、Kiro、BMAD |
-| **Spec-anchored** | 持续演化的活文档 | OpenSpec、Spec Kitty |
-| **Spec-as-source** | 只编辑 spec，代码生成（`// GENERATED FROM SPEC - DO NOT EDIT`） | Tessl（实验） |
+| 层次                 | 含义                                                    | 代表                  |
+| ------------------ | ----------------------------------------------------- | ------------------- |
+| **Spec-first**     | 用完即弃                                                  | Spec Kit、Kiro、BMAD  |
+| **Spec-anchored**  | 持续演化的活文档                                              | OpenSpec、Spec Kitty |
+| **Spec-as-source** | 只编辑 spec，代码生成（`// GENERATED FROM SPEC - DO NOT EDIT`） | Tessl（实验）           |
 
 头部工具（2026-10 数据）：
 
