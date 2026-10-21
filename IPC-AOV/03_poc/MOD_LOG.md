@@ -26,6 +26,12 @@
 | FIX-P1 | Kimi/03 #P1（高） | **safwk_lite 尾随空格修复补归档**：新增 `FINAL_foundation_systemabilitymgr_safwk_lite.patch`（base 1b620e12，+3/-3），补丁集 11 仓**恢复完整可重放** | foundation/systemabilitymgr/safwk_lite | FINAL_..._safwk_lite.patch | ✅ 重放演练 11/11 IDENTICAL | — |
 | FIX-P2 | Kimi/03 #P2 | `FINAL_base_commits.txt` 重生成：统计列按 `git diff --shortstat` 实测（含 add -N 新文件），修正 kernel 261/69→518/119 等陈旧值 | patches/ | — | ✅ | — |
 
+## 2026-10-21 批次（源码树还原）
+
+| 编号 | 问题来源 | 修改内容 | 涉及仓/文件 | 补丁 | 构建验证 | 待硬件验证 |
+|---|---|---|---|---|---|---|
+| REV-20261021-01 | 用户指令（还原 oh_release 至补丁前基线；oh_lts/wukong100 已确认干净不受影响） | **全量回退 11 仓工作树改动**：回退前逐仓 `git apply --check --reverse` 校验归档补丁完整覆盖当前状态（11/11 通过，hilog_lite/vendor 两仓因 .patch 在笔记仓被规范化行尾空白需 `--ignore-whitespace`，内容语义一致）；随后 `git checkout -- .` 恢复被改文件 + 定向删除补丁新增文件（kernel: sntp_port.c；device_soc: common/platform/pm/；hdf_core: .gitignore；vendor: hispark_taurus/aov_poc/）。**未 commit，未触碰 oh_lts** | 全部 11 仓 | 无新补丁（FINAL_*.patch 即本次回退内容的完整归档，恢复方法：逐仓 `git apply --ignore-whitespace` 对应 FINAL patch） | ✅ 11 仓 HEAD 与 FINAL_base_commits.txt 基线逐一相符；源码文件 `git status` 零改动（device_soc/hdf_core/build 残留 ws63 `__pycache__`/`sdk/output/`/egg-info/生成头文件等**构建产物**，非补丁内容，下次构建会重新生成）；11/11 FINAL 补丁正向重放 dry-run 通过（可随时恢复 PoC 态） | — |
+
 ## 修改后验证快照（2026-09-17，对照 Kimi/05 §3）
 
 | 指标 | 修改前 | 修改后 | 说明 |
