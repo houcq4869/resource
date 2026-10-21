@@ -1,0 +1,31 @@
+IPC-AOV/03_poc/MOD_LOG.md
+  s_f3bf3651baaf47::t_05e38ffc4d61ba 33
+  s_f3bf3651baaf47::t_3af56b9616a92c 29-32,34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.7",
+  "base_commit_sha": "48769a457b71771d4e79eee0a71620eecc237bd9",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_f3bf3651baaf47": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_ea3ef7168ffeYbCJdYBSvl6svk",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "custom_attributes": {
+        "stats_model_totals": "{\"glm-5.3\":{\"additions\":7,\"deletions\":1}}",
+        "stats_total_additions": "7",
+        "stats_total_deletions": "1",
+        "stats_turn_models": "{\"t_05e38ffc4d61ba\":\"glm-5.3\",\"t_3af56b9616a92c\":\"glm-5.3\"}"
+      }
+    }
+  }
+}
