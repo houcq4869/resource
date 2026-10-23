@@ -1,0 +1,33 @@
+On-device-AI/index.md
+  s_9cc878b31884e4::t_505a9d1acc50e2 1-30
+On-device-AI/90-resources/论文与报告清单.md
+  s_9cc878b31884e4::t_bb0eca949d735d 1-61
+On-device-AI/00-landscape/端侧AI全景图.md
+  s_9cc878b31884e4::t_2ec7eb080e8703 1-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.7",
+  "base_commit_sha": "f3a7e3644b1d5d3c7db6ff0e3d4c5d5c823583b2",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_9cc878b31884e4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e9950c0bfffe0D6A5ZpqBPEMXM",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "custom_attributes": {
+        "stats_model_totals": "{\"glm-5.3\":{\"additions\":174,\"deletions\":0}}",
+        "stats_total_additions": "174",
+        "stats_turn_models": "{\"t_2ec7eb080e8703\":\"glm-5.3\",\"t_505a9d1acc50e2\":\"glm-5.3\",\"t_bb0eca949d735d\":\"glm-5.3\"}"
+      }
+    }
+  }
+}
