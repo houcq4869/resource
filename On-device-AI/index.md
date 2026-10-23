@@ -39,12 +39,17 @@
   - [x] 端侧Agent与工具调用（Apple 类型安全工具调用 / App Intents 生态 / Ferret-UI Lite）
   - [x] 隐私与端侧学习（PCC 深析 / 端侧 LoRA / 联邦学习生产案例 / 差分隐私）
 
-## 调研状态：第一轮全部完成 ✅
+## 调研状态：第一轮全部完成 ✅（2026-10-23 暂告一段落）
 
-16 篇笔记覆盖四层 + 全景。后续迭代方向（未排期）：
-- 资源清单中的"待精读"论文（⭐ 标记：Apple FM 技术报告全文、mllm-NPU、PowerInfer 等）
-- 各篇"开放问题"章节的汇总与选题深化
-- 随行业演进（新 SoC / 新模型 / 新系统）持续更新
+16 篇笔记覆盖四层 + 全景。后续迭代方向（未排期，2026-10-23 讨论备选）：
+
+**深化现有笔记**：⭐ 待精读论文（Apple FM 技术报告全文、mllm-NPU、PowerInfer）；线性注意力/SSM 端侧实证；KV cache 持久化与跨会话复用；端侧训练系统（天玑 LoRA 细节）；投机解码 × 端云协同（SLED 谱系）；编译器深潜（TVM/ggml 内核）
+
+**新主题候选**：评测与基准（四层共同缺口，MLPerf Mobile / ETH AI Benchmark / Geekbench AI）；端侧 Agent 安全（prompt injection 放大、模型窃取、GGUF 供应链）；端侧生成式媒体（文生图/TTS/翻译）；OS 级 AI 服务架构对比；国产开源栈深挖（MNN/ncnn/MindSpore Lite、MiniCPM/Qwen 生态）；能源与碳足迹
+
+**新设备形态候选**：AI PC / 汽车座舱 / 可穿戴+AR / MCU tinyML / 浏览器端（WebGPU、Chrome Prompt API）
+
+**方法升级候选**：加入轻量实操层（本地 llama.cpp/MLX 实测，验证文献数字）；CNN→生成式时代的范式转移史（2015-2020 mobile AI）
 
 ## 写作约定
 
