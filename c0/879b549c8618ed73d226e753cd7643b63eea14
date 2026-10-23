@@ -1,0 +1,39 @@
+"On-device-AI/20-inference/KV cache与长上下文.md"
+  s_9cc878b31884e4::t_fa036a82df314a 1-105
+On-device-AI/20-inference/量化技术.md
+  s_9cc878b31884e4::t_30acd08aa4616c 1-104
+On-device-AI/20-inference/投机解码与加速.md
+  s_9cc878b31884e4::t_ce080b71f41f39 1-100
+On-device-AI/index.md
+  s_9cc878b31884e4::t_190f2337037b16 12
+  s_9cc878b31884e4::t_10540059a0903a 21,24-27
+On-device-AI/90-resources/论文与报告清单.md
+  s_9cc878b31884e4::t_fbb01f6d29afb2 20-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.7",
+  "base_commit_sha": "c0879b549c8618ed73d226e753cd7643b63eea14",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_9cc878b31884e4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e9950c0bfffe0D6A5ZpqBPEMXM",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "custom_attributes": {
+        "stats_model_totals": "{\"glm-5.3\":{\"additions\":342,\"deletions\":7}}",
+        "stats_total_additions": "342",
+        "stats_total_deletions": "7",
+        "stats_turn_models": "{\"t_1031b570b56ff3\":\"glm-5.3\",\"t_10540059a0903a\":\"glm-5.3\",\"t_190f2337037b16\":\"glm-5.3\",\"t_30acd08aa4616c\":\"glm-5.3\",\"t_ce080b71f41f39\":\"glm-5.3\",\"t_fa036a82df314a\":\"glm-5.3\",\"t_fbb01f6d29afb2\":\"glm-5.3\"}"
+      }
+    }
+  }
+}
