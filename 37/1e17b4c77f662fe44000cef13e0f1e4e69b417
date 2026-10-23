@@ -1,0 +1,38 @@
+On-device-AI/20-inference/推理框架横向对比.md
+  s_9cc878b31884e4::t_aef000e9306c8a 103
+  s_9cc878b31884e4::t_162de2a5ced2b9 1-102,104-134
+On-device-AI/index.md
+  s_9cc878b31884e4::t_d7d454731accf1 21-26
+  s_9cc878b31884e4::t_5da9c77e1da84c 12
+On-device-AI/20-inference/异构调度与NPU利用.md
+  s_9cc878b31884e4::t_fc04a5a8f54d36 1-91
+On-device-AI/90-resources/论文与报告清单.md
+  s_9cc878b31884e4::t_4f6a75c5443a6a 14-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.7",
+  "base_commit_sha": "371e17b4c77f662fe44000cef13e0f1e4e69b417",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_9cc878b31884e4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e9950c0bfffe0D6A5ZpqBPEMXM",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "custom_attributes": {
+        "stats_model_totals": "{\"glm-5.3\":{\"additions\":246,\"deletions\":7}}",
+        "stats_total_additions": "246",
+        "stats_total_deletions": "7",
+        "stats_turn_models": "{\"t_162de2a5ced2b9\":\"glm-5.3\",\"t_4f6a75c5443a6a\":\"glm-5.3\",\"t_5da9c77e1da84c\":\"glm-5.3\",\"t_aef000e9306c8a\":\"glm-5.3\",\"t_d7d454731accf1\":\"glm-5.3\",\"t_fc04a5a8f54d36\":\"glm-5.3\"}"
+      }
+    }
+  }
+}
