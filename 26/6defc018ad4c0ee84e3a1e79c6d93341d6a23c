@@ -1,0 +1,47 @@
+On-device-AI/10-hardware/NPU工具链与碎片化问题.md
+  s_9cc878b31884e4::t_c4a7b0525353a4 1-106
+On-device-AI/10-hardware/手机SoC端侧AI能力横向对比.md
+  s_9cc878b31884e4::t_42c67758e5d8b4 1-95
+On-device-AI/40-hybrid/隐私与端侧学习.md
+  s_9cc878b31884e4::t_123347df3293d4 1-92
+On-device-AI/90-resources/论文与报告清单.md
+  s_9cc878b31884e4::t_f505178b27bf4e 84-122
+On-device-AI/index.md
+  s_9cc878b31884e4::t_941f3b1537c61b 11,14
+  s_9cc878b31884e4::t_95c89ecc12fd9d 32-47
+"On-device-AI/40-hybrid/Hybrid AI架构.md"
+  s_9cc878b31884e4::t_2b860592d46227 1-93
+On-device-AI/40-hybrid/端侧RAG与个性化记忆.md
+  s_9cc878b31884e4::t_dfffc71fce8b8b 1-86
+On-device-AI/10-hardware/NPU架构对比.md
+  s_9cc878b31884e4::t_15f65db08b0e4c 1-114
+On-device-AI/40-hybrid/端侧Agent与工具调用.md
+  s_9cc878b31884e4::t_ff789c296da740 1-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.7",
+  "base_commit_sha": "266defc018ad4c0ee84e3a1e79c6d93341d6a23c",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_9cc878b31884e4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e9950c0bfffe0D6A5ZpqBPEMXM",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "custom_attributes": {
+        "stats_model_totals": "{\"glm-5.3\":{\"additions\":734,\"deletions\":5}}",
+        "stats_total_additions": "734",
+        "stats_total_deletions": "5",
+        "stats_turn_models": "{\"t_123347df3293d4\":\"glm-5.3\",\"t_15f65db08b0e4c\":\"glm-5.3\",\"t_2b860592d46227\":\"glm-5.3\",\"t_42c67758e5d8b4\":\"glm-5.3\",\"t_941f3b1537c61b\":\"glm-5.3\",\"t_95c89ecc12fd9d\":\"glm-5.3\",\"t_ba11cd1d5acd88\":\"glm-5.3\",\"t_c4a7b0525353a4\":\"glm-5.3\",\"t_dfffc71fce8b8b\":\"glm-5.3\",\"t_f505178b27bf4e\":\"glm-5.3\",\"t_ff789c296da740\":\"glm-5.3\"}"
+      }
+    }
+  }
+}
