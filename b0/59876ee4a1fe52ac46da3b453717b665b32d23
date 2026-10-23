@@ -1,0 +1,30 @@
+On-device-AI/index.md
+  s_9cc878b31884e4::t_4b256ebaa3608e 42,44-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.7",
+  "base_commit_sha": "b059876ee4a1fe52ac46da3b453717b665b32d23",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_9cc878b31884e4": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e9950c0bfffe0D6A5ZpqBPEMXM",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "custom_attributes": {
+        "stats_model_totals": "{\"glm-5.3\":{\"additions\":11,\"deletions\":6}}",
+        "stats_total_additions": "11",
+        "stats_total_deletions": "6",
+        "stats_turn_models": "{\"t_4b256ebaa3608e\":\"glm-5.3\"}"
+      }
+    }
+  }
+}
