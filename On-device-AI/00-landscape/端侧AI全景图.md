@@ -81,4 +81,3 @@
 - 官方：[Qualcomm 终端侧推理白皮书 2025](https://www.qualcomm.cn/content/dam/qcomm-martech/dm-assets/documents/files/ai_whitepaper/ai_whitepaper_2025.pdf)
 - 官方：[Google AI Edge SLM 博客](https://developers.googleblog.com/en/google-ai-edge-small-language-models-multimodality-rag-function-calling/)
 - 市场报告：Grand View / SHD Group / IDTechEx / Omdia / Futuresource（链接见第 2 节表格）
-![[Pasted image 20261026111748.png]]
