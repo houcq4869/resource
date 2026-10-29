@@ -1,0 +1,19 @@
+AGI/transformer/Transformer架构详解.md
+  s_259d678d005bbb::t_30081e8c52055d 1-246
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ea085466197e96fcb358a027e970aa1adebda92c",
+  "prompts": {},
+  "sessions": {
+    "s_259d678d005bbb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e7abd6750ffeGpOckZlw2Ei6u8",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  }
+}
