@@ -1,0 +1,19 @@
+On-device-AI/index.md
+  s_1d76ac37462db0::t_5c84e137d6aae8 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dc8faaa4ebdc56c371cbc4719201604142e01101",
+  "prompts": {},
+  "sessions": {
+    "s_1d76ac37462db0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e98654c81ffeT6mgdLKf7SFjy3",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  }
+}
