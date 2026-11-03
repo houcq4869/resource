@@ -1,0 +1,41 @@
+oh_learn/详细调研资料/00-研究综合-SYNTHESIS.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-36
+oh_learn/详细调研资料/08-海思芯片适配专题详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-642
+oh_learn/详细调研资料/10-Hi3403移植模板深挖详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-1045
+oh_learn/详细调研资料/03-内核体系详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-759
+oh_learn/详细调研资料/06-编译构建与设备开发详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-1152
+oh_learn/详细调研资料/01-项目概况与版本演进-详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-1810
+oh_learn/详细调研资料/07-应用框架与分布式能力详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-1937
+oh_learn/详细调研资料/README.md
+  s_2b0b8f8799f106::t_1cb213e96e5666 1-31
+oh_learn/详细调研资料/05-HDF驱动框架详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-1469
+oh_learn/详细调研资料/02-系统架构与硬件基线-详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-762
+oh_learn/详细调研资料/09-源码仓库实证详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-995
+oh_learn/详细调研资料/04-子系统全景详档.md
+  s_2b0b8f8799f106::t_9bde340b1e4765 1-1018
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6a991726403898d8fbf4f7e8507bad287b4729e0",
+  "prompts": {},
+  "sessions": {
+    "s_2b0b8f8799f106": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e65d3e09cffegU7Xy3CT5te2ju",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  }
+}
