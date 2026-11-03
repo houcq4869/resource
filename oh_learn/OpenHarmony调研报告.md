@@ -328,22 +328,22 @@ kernel/linux/
 
 **基础软件服务子系统集（base/）**
 
-| 子系统 | 职责 | 代表仓 |
-|---|---|---|
-| DFX hiviewdfx | HiLog/HiSysEvent/HiView/Faultloggerd/HiTrace | hiviewdfx_* |
-| 多媒体 multimedia | 音频/视频/编解码/相机/图片 | multimedia_audio_framework / av_codec / player_framework / camera_framework |
-| 事件通知 notification | 公共事件、通知、EventHandler | notification_* |
-| 电话 telephony | 蜂窝通话/SMS/RIL 适配 | telephony_core_service / call_manager / ril_adapter 等 |
-| 帐号 account | 设备帐号、厂商云帐号对接 | account_os_account |
-| 升级 updater | 系统升级、打包工具 | update_updater / update_sys_installer 等 |
-| 电源 powermgr | 电源/电池/温控/显示亮度 | powermgr_* |
-| 输入法 inputmethod | 输入法框架 | inputmethod_imf |
-| 上传下载 request | 请求框架 | request_request |
-| 主题 theme | 壁纸/锁屏 | theme_wallpaper_mgr 等 |
-| 时间 time / 定制 customization | 时间服务 / 配置策略、企业设备管理 | time_time_service / customization_* |
-| 打印 print | 打印框架 | print_print_fwk |
-| Web web | ArkWeb（WebView） | web_webview（Chromium 内核在 third_party 随版演进，7.0 为 Chromium 144） | [S2]
-| 安全/权限 security·accesscontrol | HUKS、设备认证、证书、资产管理、沙箱/AT | security_* / accesscontrol_* |
+| 子系统                          | 职责                                           | 代表仓                                                                         |      |
+| ---------------------------- | -------------------------------------------- | --------------------------------------------------------------------------- | ---- |
+| DFX hiviewdfx                | HiLog/HiSysEvent/HiView/Faultloggerd/HiTrace | hiviewdfx_*                                                                 |      |
+| 多媒体 multimedia               | 音频/视频/编解码/相机/图片                              | multimedia_audio_framework / av_codec / player_framework / camera_framework |      |
+| 事件通知 notification            | 公共事件、通知、EventHandler                         | notification_*                                                              |      |
+| 电话 telephony                 | 蜂窝通话/SMS/RIL 适配                              | telephony_core_service / call_manager / ril_adapter 等                       |      |
+| 帐号 account                   | 设备帐号、厂商云帐号对接                                 | account_os_account                                                          |      |
+| 升级 updater                   | 系统升级、打包工具                                    | update_updater / update_sys_installer 等                                     |      |
+| 电源 powermgr                  | 电源/电池/温控/显示亮度                                | powermgr_*                                                                  |      |
+| 输入法 inputmethod              | 输入法框架                                        | inputmethod_imf                                                             |      |
+| 上传下载 request                 | 请求框架                                         | request_request                                                             |      |
+| 主题 theme                     | 壁纸/锁屏                                        | theme_wallpaper_mgr 等                                                       |      |
+| 时间 time / 定制 customization   | 时间服务 / 配置策略、企业设备管理                           | time_time_service / customization_*                                         |      |
+| 打印 print                     | 打印框架                                         | print_print_fwk                                                             |      |
+| Web web                      | ArkWeb（WebView）                              | web_webview（Chromium 内核在 third_party 随版演进，7.0 为 Chromium 144）               | [S2] |
+| 安全/权限 security·accesscontrol | HUKS、设备认证、证书、资产管理、沙箱/AT                      | security_* / accesscontrol_*                                                |      |
 
 **硬件服务子系统集（base/ 下硬件相关）**
 
