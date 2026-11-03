@@ -180,11 +180,11 @@ flowchart TB
 
 ### 3.3 系统形态与硬件基线
 
-| 形态 | 处理器 | 官方 RAM 基线（开发文档口径） | 可用内核 | 典型设备 |
-|---|---|---|---|---|
-| 轻量系统 mini | MCU（Cortex-M、RISC-V 32 位） | **128KiB** | LiteOS-M | 连接模组、传感器、穿戴 |
-| 小型系统 small | 应用处理器（Cortex-A，带 MMU） | **1MiB** | LiteOS-A、Linux | IP Camera、电子猫眼、路由 |
-| 标准系统 standard | 应用处理器 | **128MiB** | Linux | 带屏 IoT、轻智能机 |
+| 形态            | 处理器                       | 官方 RAM 基线（开发文档口径） | 可用内核           | 典型设备              |
+| ------------- | ------------------------- | ----------------- | -------------- | ----------------- |
+| 轻量系统 mini     | MCU（Cortex-M、RISC-V 32 位） | **128KiB**        | LiteOS-M       | 连接模组、传感器、穿戴       |
+| 小型系统 small    | 应用处理器（Cortex-A，带 MMU）     | **1MiB**          | LiteOS-A、Linux | IP Camera、电子猫眼、路由 |
+| 标准系统 standard | 应用处理器                     | **128MiB**        | Linux          | 带屏 IoT、轻智能机       |
 
 > 【冲突·三口径】硬件基线在官方体系内有三套口径，引用时必须注明出处：
 > ① 开发文档族（Overview/device-dev-guide/kernel-overview/quickstart）：128KiB / 1MiB / 128MiB（仅 RAM）；
