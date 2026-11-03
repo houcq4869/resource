@@ -307,24 +307,24 @@ kernel/linux/
 
 **系统基本能力子系统集（foundation/ 等）**
 
-| 子系统 | 职责 | 代表仓 |
-|---|---|---|
-| 元能力 ability | Ability 生命周期与调度、跨进程调用（AbilityKit） | ability_ability_runtime / ability_ability_base / ability_dmsfwk |
-| 包管理 bundlemanager | 安装包安装/更新/卸载/查询 | bundlemanager_bundle_framework 等（appexecfwk_standard 已并入，见 5.4） | [S3]
-| ArkUI arkui | UI 组件/动画/绘制/交互事件、JS API 扩展 | arkui_ace_engine / arkui_napi |
-| 方舟运行时 arkcompiler | ArkTS/TS/JS 编译工具链与运行时 | arkcompiler_ets_runtime / runtime_core / ets_frontend / toolchain |
-| 公共基础类库 commonlibrary | C/C++/JS 通用组件 | commonlibrary_c_utils / ets_utils / utils_lite |
-| 分布式软总线/网络 communication | 软总线、IPC/RPC、蓝牙、WLAN、网络管理 | communication_dsoftbus / ipc / bluetooth / wifi / netmanager_base |
-| 分布式数据 distributeddatamgr | KV/RDB/数据对象/UDMF/pasteboard | distributeddatamgr_kv_store / relational_store / data_object / udmf |
-| 分布式硬件 distributedhardware | 设备管理、硬件虚拟化框架、分布式相机/屏幕/音频/输入 | distributedhardware_* |
-| 图形 graphic | 合成、渲染（2D/3D）、窗口服务支撑 | graphic_graphic_2d / graphic_graphic_3d / graphic_surface |
-| 窗口 window | 窗口管理/显示 | window_window_manager |
-| 多模输入 multimodalinput | 触摸/按键/鼠标输入 | multimodalinput_input |
-| 全局资源调度 resourceschedule | 资源调度服务、FFRT、work scheduler、内存管理 | resourceschedule_* |
-| 系统服务管理 systemabilitymgr | SystemAbility 启动/注册/发现/调用（samgr/safwk） | systemabilitymgr_samgr / safwk |
-| 文件管理 filemanagement | 用户文件服务、dfs、存储服务 | filemanagement_* |
-| 无障碍 barrierfree | 无障碍能力 | accessibility |
-| AI ai | AI 引擎、NNRt | ai_engine / ai_neural_network_runtime |
+| 子系统                       | 职责                                     | 代表仓                                                                 |      |
+| ------------------------- | -------------------------------------- | ------------------------------------------------------------------- | ---- |
+| 元能力 ability               | Ability 生命周期与调度、跨进程调用（AbilityKit）      | ability_ability_runtime / ability_ability_base / ability_dmsfwk     |      |
+| 包管理 bundlemanager         | 安装包安装/更新/卸载/查询                         | bundlemanager_bundle_framework 等（appexecfwk_standard 已并入，见 5.4）     | [S3] |
+| ArkUI arkui               | UI 组件/动画/绘制/交互事件、JS API 扩展             | arkui_ace_engine / arkui_napi                                       |      |
+| 方舟运行时 arkcompiler         | ArkTS/TS/JS 编译工具链与运行时                  | arkcompiler_ets_runtime / runtime_core / ets_frontend / toolchain   |      |
+| 公共基础类库 commonlibrary      | C/C++/JS 通用组件                          | commonlibrary_c_utils / ets_utils / utils_lite                      |      |
+| 分布式软总线/网络 communication   | 软总线、IPC/RPC、蓝牙、WLAN、网络管理               | communication_dsoftbus / ipc / bluetooth / wifi / netmanager_base   |      |
+| 分布式数据 distributeddatamgr  | KV/RDB/数据对象/UDMF/pasteboard            | distributeddatamgr_kv_store / relational_store / data_object / udmf |      |
+| 分布式硬件 distributedhardware | 设备管理、硬件虚拟化框架、分布式相机/屏幕/音频/输入            | distributedhardware_*                                               |      |
+| 图形 graphic                | 合成、渲染（2D/3D）、窗口服务支撑                    | graphic_graphic_2d / graphic_graphic_3d / graphic_surface           |      |
+| 窗口 window                 | 窗口管理/显示                                | window_window_manager                                               |      |
+| 多模输入 multimodalinput      | 触摸/按键/鼠标输入                             | multimodalinput_input                                               |      |
+| 全局资源调度 resourceschedule   | 资源调度服务、FFRT、work scheduler、内存管理        | resourceschedule_*                                                  |      |
+| 系统服务管理 systemabilitymgr   | SystemAbility 启动/注册/发现/调用（samgr/safwk） | systemabilitymgr_samgr / safwk                                      |      |
+| 文件管理 filemanagement       | 用户文件服务、dfs、存储服务                        | filemanagement_*                                                    |      |
+| 无障碍 barrierfree           | 无障碍能力                                  | accessibility                                                       |      |
+| AI ai                     | AI 引擎、NNRt                             | ai_engine / ai_neural_network_runtime                               |      |
 
 **基础软件服务子系统集（base/）**
 
@@ -347,14 +347,14 @@ kernel/linux/
 
 **硬件服务子系统集（base/ 下硬件相关）**
 
-| 子系统 | 职责 | 代表仓 |
-|---|---|---|
-| 位置 location | 位置服务 | base_location |
-| 用户 IAM useriam | 生物识别 | useriam_pin_auth 等 |
-| 泛Sensor sensors | 传感器、马达 | sensors_sensor / miscdevice |
-| IoT 硬件 iothardware | 轻量外设 HAL（GPIO/I2C/PWM/UART/WDT） | iothardware_peripheral |
-| USB usb | USB 服务 | busmanager_usb_manager（master 由 usb_usb_manager 更名） |
-| TEE tee | 可信执行环境客户端/框架 | tee_tee_client 等 |
+| 子系统                | 职责                              | 代表仓                                                 |
+| ------------------ | ------------------------------- | --------------------------------------------------- |
+| 位置 location        | 位置服务                            | base_location                                       |
+| 用户 IAM useriam     | 生物识别                            | useriam_pin_auth 等                                  |
+| 泛Sensor sensors    | 传感器、马达                          | sensors_sensor / miscdevice                         |
+| IoT 硬件 iothardware | 轻量外设 HAL（GPIO/I2C/PWM/UART/WDT） | iothardware_peripheral                              |
+| USB usb            | USB 服务                          | busmanager_usb_manager（master 由 usb_usb_manager 更名） |
+| TEE tee            | 可信执行环境客户端/框架                    | tee_tee_client 等                                    |
 
 **增强软件服务子系统集（domains/）**：advertising（广告服务，ads_framework/oaid）；智慧屏/穿戴/IoT 专有业务由厂商 vendor 实现（开源主干基本不含）。
 
