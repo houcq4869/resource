@@ -278,33 +278,35 @@ kernel/linux/
 
 ### 5.1 「子系统清单」有三套官方口径（引用时先想清楚用哪套）
 
-| 口径 | 数量 | 载体 | 用途 |
-|---|---|---|---|
-| 架构介绍 | 29 | Overview 表（含「适用范围」列） | 架构认知 |
-| 子系统说明 | 44 | `docs/zh-cn/readme/*.md` | 文档导读（每篇含「简介/目录/相关仓」） |
-| 构建配置 | 57 | `build/subsystem_config.json`（随版本 52→57 增长） | **代码组织的事实标准** |
+| 口径    | 数量  | 载体                                          | 用途                   |
+| ----- | --- | ------------------------------------------- | -------------------- |
+| 架构介绍  | 29  | Overview 表（含「适用范围」列）                        | 架构认知                 |
+| 子系统说明 | 44  | `docs/zh-cn/readme/*.md`                    | 文档导读（每篇含「简介/目录/相关仓」） |
+| 构建配置  | 57  | `build/subsystem_config.json`（随版本 52→57 增长） | **代码组织的事实标准**        |
 
 「目录前缀 = 子系统集」的官方映射（sourcecode-acquire.md，master 现行）：
 
-| 源码目录 | 子系统集 |
-|---|---|
-| kernel/ | 内核子系统 |
-| drivers/ | 驱动子系统 |
-| foundation/ | 系统基本能力子系统集 |
-| base/ | 基础软件服务子系统集 & 硬件服务子系统集 |
-| domains/ | 增强软件服务子系统集（如 advertising） |
-| test/ | 测试子系统 |
-| applications/ | 应用程序样例 |
+| 源码目录          | 子系统集                      |
+| ------------- | ------------------------- |
+| kernel/       | 内核子系统                     |
+| drivers/      | 驱动子系统                     |
+| foundation/   | 系统基本能力子系统集                |
+| base/         | 基础软件服务子系统集 & 硬件服务子系统集     |
+| domains/      | 增强软件服务子系统集（如 advertising） |
+| test/         | 测试子系统                     |
+| applications/ | 应用程序样例                    |
 
 ### 5.2 核心子系统清单（按子系统集分组；仓均在 GitCode/Gitee 的 openharmony/ 组织下同名）
 
 **内核层**
+
 | 子系统 | 职责 | 代表仓 |
 |---|---|---|
 | 内核 kernel | 多内核 + KAL | kernel_liteos_m / kernel_liteos_a / kernel_linux_config / kernel_uniproton |
 | 驱动 hdf | HDF 统一驱动框架 | drivers_hdf_core / drivers_peripheral / drivers_interface |
 
 **系统基本能力子系统集（foundation/ 等）**
+
 | 子系统 | 职责 | 代表仓 |
 |---|---|---|
 | 元能力 ability | Ability 生命周期与调度、跨进程调用（AbilityKit） | ability_ability_runtime / ability_ability_base / ability_dmsfwk |
@@ -325,6 +327,7 @@ kernel/linux/
 | AI ai | AI 引擎、NNRt | ai_engine / ai_neural_network_runtime |
 
 **基础软件服务子系统集（base/）**
+
 | 子系统 | 职责 | 代表仓 |
 |---|---|---|
 | DFX hiviewdfx | HiLog/HiSysEvent/HiView/Faultloggerd/HiTrace | hiviewdfx_* |
@@ -343,6 +346,7 @@ kernel/linux/
 | 安全/权限 security·accesscontrol | HUKS、设备认证、证书、资产管理、沙箱/AT | security_* / accesscontrol_* |
 
 **硬件服务子系统集（base/ 下硬件相关）**
+
 | 子系统 | 职责 | 代表仓 |
 |---|---|---|
 | 位置 location | 位置服务 | base_location |
