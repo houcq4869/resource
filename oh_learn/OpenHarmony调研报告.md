@@ -165,13 +165,13 @@ flowchart TB
 
 ### 3.2 分布式能力地图（架构级）
 
-| 能力 | 层位/定位 | 一句话职责 | 关键仓（Gitee/GitCode 同名） |
-|---|---|---|---|
-| 分布式软总线 DSoftBus | 系统服务层·统一通信基座 | 与链路无关的设备发现/连接/组网/传输，设备内 IPC 与设备间 RPC 统一 | communication_dsoftbus |
-| 分布式数据管理 | 软总线之上 | 数据与物理设备解绑：KV/RDB 同步、分布式数据对象、UDMF | distributeddatamgr_*（kv_store/relational_store/data_object/datamgr_service） |
-| 分布式任务调度 | 系统服务层（dmsfwk） | 统一分布式服务管理（发现/同步/注册/调用）：远程启动/调用/绑定/**迁移** | ability_dmsfwk（dtbabilitymgr/dtbschedmgr）+ systemabilitymgr（samgr/safwk） |
-| 分布式硬件 | 系统服务层 | 基于 **HDI** 的硬件资源池化+虚拟硬件实例（相机/屏幕/音频/输入） | distributedhardware_{device_manager,distributed_hardware_fwk,distributed_camera/screen/audio/input} |
-| 跨端流转 HOP | 框架/应用层 | 跨端迁移 + 多端协同（跨多设备分布式操作统称「流转」） | docs: inter-device-interaction-hop-overview |
+| 能力              | 层位/定位         | 一句话职责                                    | 关键仓（Gitee/GitCode 同名）                                                                               |
+| --------------- | ------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 分布式软总线 DSoftBus | 系统服务层·统一通信基座  | 与链路无关的设备发现/连接/组网/传输，设备内 IPC 与设备间 RPC 统一  | communication_dsoftbus                                                                              |
+| 分布式数据管理         | 软总线之上         | 数据与物理设备解绑：KV/RDB 同步、分布式数据对象、UDMF         | distributeddatamgr_*（kv_store/relational_store/data_object/datamgr_service）                         |
+| 分布式任务调度         | 系统服务层（dmsfwk） | 统一分布式服务管理（发现/同步/注册/调用）：远程启动/调用/绑定/**迁移** | ability_dmsfwk（dtbabilitymgr/dtbschedmgr）+ systemabilitymgr（samgr/safwk）                            |
+| 分布式硬件           | 系统服务层         | 基于 **HDI** 的硬件资源池化+虚拟硬件实例（相机/屏幕/音频/输入）   | distributedhardware_{device_manager,distributed_hardware_fwk,distributed_camera/screen/audio/input} |
+| 跨端流转 HOP        | 框架/应用层        | 跨端迁移 + 多端协同（跨多设备分布式操作统称「流转」）             | docs: inter-device-interaction-hop-overview                                                         |
 
 关键约束（移植/开发前须知）：
 - 软总线要求设备在同一局域网（docs 明文约束）；跨设备通信须先完成设备绑定认证，且需要 `DISTRIBUTED_DATASYNC` 等权限；
