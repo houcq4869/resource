@@ -95,6 +95,15 @@ Dense Transformer 和 MoE 到底差在哪里，MoE 解决了什么问题，以�
 |LayerNorm/RMSNorm|归一化缩放参数，用于稳定训练|稳定训练过程中的数值分布|
 |Output Head|输出词表投影矩阵|把 hidden state 转成下一个 token 的概率分布|
 
+一般来说模型变大，通常不是简单地“多存了一些数字”，而是意味着模型结构里的几个关键维度一起变大：
+
+|**扩展方式**|**对计算量的影响**|
+|---|---|
+|层数更多|每个 token 要经过更多 Transformer Block|
+|FFN 中间维度更大|FFN 参数量和计算量显著增加|
+|Attention head / hidden size 配套扩大|投影矩阵和注意力计算都会增加|
+|上下文更长|Attention 和 KV Cache 压力上升|
+
 
 
 
