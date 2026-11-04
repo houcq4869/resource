@@ -1,0 +1,19 @@
+AGENTS.md
+  s_2b0b8f8799f106::t_9788f90d65150b 51-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "06e471039ebfe4d120b8bac53551b4c076a0604a",
+  "prompts": {},
+  "sessions": {
+    "s_2b0b8f8799f106": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e65d3e09cffegU7Xy3CT5te2ju",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  }
+}
