@@ -111,10 +111,30 @@ Dense Transformer 和 MoE 到底差在哪里，MoE 解决了什么问题，以�
 
 **如果 FFN 主要是对每个 token 独立做特征变换，那么能不能不要让所有 token 都经过同一个巨大的 FFN，而是为不同 token 选择不同的 FFN 子网络？**——MoE核心思路
 
+![[Pasted image 20261104170734.png]]
+
+
+Scaling Law 继续推动模型变大，但 Dense 架构让成本同步上涨。MoE 则是在 Scaling Law 压力下，对“容量”和“计算成本”进行解耦的一种架构尝试
 
 ### 2.2. Dense Transformer
+**——稠密计算：每个token激活全部参数**
 
+Dense Transformer 是现代 LLM 最经典的架构路线。它延续了《Attention Is All You Need》提出的 Transformer 思想：用一个完整、连续的神经网络来处理每个 token，让所有参数共同参与表示学习和上下文建模。
 
+**Dense**，指的是一种“稠密计算”方式：每个 token 在经过模型时，都会依次通过所有 Transformer Block，并使用每一层里的完整参数。
+
+![[Pasted image 20261104171001.png]]
+
+**`Total Parameters ≈ Active Parameters`**
+
+规模化困境：**模型容量和计算成本强绑定**
+- **训练 FLOPs 增加**：参数量越大，前向传播和反向传播的矩阵计算越重，完整训练一次模型需要更多 GPU 时间；
+- **显存占用增加**：模型参数、梯度、优化器状态都需要占用显存，使用 Adam 这类优化器时，显存压力会进一步放大；
+- **分布式训练更复杂**：超大模型通常需要数据并行、张量并行、流水线并行等组合，GPU 间通信成本和调度复杂度上升；
+- **推理成本和延迟变高**： LLM 是一个 token 一个 token 生成的。即使有 KV Cache 减少重复计算，每生成一个新 token，模型仍然要经过所有层的 Attention 和 FFN，因此模型越大，在线服务的成本和延迟压力越明显；
+- ……
+
+典型Dense模型
 
 ### 2.3. MoE
 
