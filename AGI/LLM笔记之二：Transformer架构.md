@@ -27,6 +27,39 @@ Self-Attention 可以理解为给句子内部建立了一张关系网，在真�
 
 不过，一个 Attention 视角可能还不够。语言关系很复杂，同一句话可以从不同角度理解。模型可能需要同时关注语法结构、实体关系、位置关系、语义合理性。
 
-所以 Transformer 引入了 Multi-Head Attention，也就是**多头注意力**
+所以 Transformer 引入了 Multi-Head Attention，也就是**多头注意力**（让模型用多个视角同时观察同一句话）
+
+![[Pasted image 20261104162539.png]]
+
+ Transformer 表达能力强的重要原因之一：它不是只用一种方式理解文本，而是可以在多个语义空间里同时建模 token 之间的关系
 
 ### 1.3. Transformer Block
+**——Transformer 里可以反复堆叠的一层“语言理解单元”**
+
+每经过一个 Transformer Block，token 的表示都会被更新一次：先通过 Self-Attention 和上下文建立关系，再通过前馈网络进一步加工，最后输出给下一层
+
+一个完整的 Transformer Block 通常包含几部分：
+
+|**组件**|**作用**|**直觉理解**|
+|---|---|---|
+|Multi-Head Self-Attention|建模 token 之间的关系|让每个 token 知道该看谁|
+|Feed Forward Network|进一步加工 token 表示|对上下文信息做消化和提炼|
+|Residual Connection|保留原始信息|避免层数太深时信息丢失|
+|LayerNorm|稳定每层计算|让训练过程更平稳|
+
+![[Pasted image 20261104163141.png]]
+
+（1）Transformer 需要位置编码
+
+- 告诉模型每个 token 在句子中的位置，让模型能够区分不同顺序带来的语义差异
+- 常见做法是在 token embedding 的基础上加入位置编码，或者在 Attention 计算过程中引入相对位置信息
+
+（2）Feed Forward Network 加工信息
+
+- 对每个 token 的表示做一次非线性加工，让模型有能力表达更复杂的模式
+- Attention复杂汇总上下文，Feed Forward负责消化和加工上下文
+
+（3）残差连接和LayerNorm稳定训练
+
+
+
