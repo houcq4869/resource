@@ -61,5 +61,49 @@ Self-Attention 可以理解为给句子内部建立了一张关系网，在真�
 
 （3）残差连接和LayerNorm稳定训练
 
+- 现代LLM存在很多层Transformer Block，如果每一层都直接覆盖上一层信息，训练会很不稳定，也容易出现梯度消失、信息丢失等问题
+	- 残差连接：不要让每一层从零开始重写信息，而是在原有信息基础上做增量修改
+	- LayerNorm：把每一层的数值范围整理得更稳定，避免训练过程中数值忽大忽小
+
+
+### 1.4. Transformer如何跑起来
+**——Transformer 的工作过程，就是不断更新每个 token 的表示，让它从一个孤立的词，逐渐变成融合上下文信息的语义表示**
+
+![[Pasted image 20261104164016.png]]
+
+Transformer 本身并不等同于 GPT，也不只用于生成式大语言模型。它更像是一套基础架构，可以根据任务目标，组合成不同类型的模型。常见的 Transformer 架构大致有三类：
+
+|**架构**|**代表模型**|**适合任务**|**特点**|
+|---|---|---|---|
+|Encoder-only|BERT|理解、分类、标注|可以看完整上下文|
+|Decoder-only|GPT|文本生成、对话、代码生成|只能看前文，预测后文|
+|Encoder-Decoder|T5、早期翻译模型|翻译、摘要|一边理解输入，一边生成输出|
+
+## 2. Dense Transformer & MoE
+
+Dense Transformer 和 MoE 到底差在哪里，MoE 解决了什么问题，以及为什么它正在成为很多头部基模的重要架构选择？
+### 2.1. Scaling Law
+**——继续扩大模型、数据和计算，通常可以换来更强的能力**
+
+在 LLM 中，我们常说的“参数”，主要指模型训练过程中学出来的权重，而不是人工配置项。以 Transformer 为例，参数主要分布在几个位置：
+
+|**参数位置**|**主要内容**|**作用**|
+|---|---|---|
+|Embedding|token embedding|把 token 转成向量表示|
+|Attention|Q/K/V/O 投影矩阵|建模 token 之间的上下文关系|
+|FFN|Up / Gate / Down 等线性变换矩阵|对每个 token 的表示做非线性特征变换|
+|LayerNorm/RMSNorm|归一化缩放参数，用于稳定训练|稳定训练过程中的数值分布|
+|Output Head|输出词表投影矩阵|把 hidden state 转成下一个 token 的概率分布|
+
+
+
+
+### 2.2. Dense Transformer
+
+
+
+### 2.3. MoE
+
+
 
 
