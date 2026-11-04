@@ -103,8 +103,13 @@ Dense Transformer 和 MoE 到底差在哪里，MoE 解决了什么问题，以�
 |FFN 中间维度更大|FFN 参数量和计算量显著增加|
 |Attention head / hidden size 配套扩大|投影矩阵和注意力计算都会增加|
 |上下文更长|Attention 和 KV Cache 压力上升|
+尤其是 hidden size 的扩大，会显著放大计算量。因为 Transformer 里的核心计算大多是矩阵乘法，矩阵规模变大时，计算量不是线性增加，而是接近按平方级增长。
 
+以 FFN 为例， hidden size 是 `d`，FFN 中间维度是 `4d`，其计算量如下所示：
 
+![[Pasted image 20261104165753.png]]
+
+**如果 FFN 主要是对每个 token 独立做特征变换，那么能不能不要让所有 token 都经过同一个巨大的 FFN，而是为不同 token 选择不同的 FFN 子网络？**——MoE核心思路
 
 
 ### 2.2. Dense Transformer
