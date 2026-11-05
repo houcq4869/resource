@@ -153,4 +153,17 @@ MoE，全称是 **Mixture of Experts**，直译是“专家混合模型”。在
 
 **`Total Parameters >> Active Parameters`**
 
+MoE 的代价：
+1. 显存仍然高：总参数仍然需要存储；
+2. 通信更复杂：token 需要被路由到不同 expert，分布式场景会产生 all-to-all 通信；
+3. 训练更难稳定：需要处理 expert collapse、负载不均、路由抖动等问题；
+4. 部署更复杂：推理延迟可能受路由分布和 expert 热点影响。
+
+典型MoE模型：Mixtral 8x7B、DeepSeek-V3、Qwen3 MoE、Llama 4、Gemini 1.5
+
+MoE的挑战：稀疏激活背后的训练与系统复杂度
+- 路由机制：token应该交给哪个expert
+	- MoE 的关键是 Router。它会根据 token 的 hidden state 计算 expert 分数，并选择 Top-k 个 expert：`selected_experts = TopK(router(x))`
+- 训练稳定性：专家塌缩与负载不均
+	- 
 
