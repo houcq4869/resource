@@ -134,10 +134,23 @@ Dense Transformer 是现代 LLM 最经典的架构路线。它延续了《Attent
 - **推理成本和延迟变高**： LLM 是一个 token 一个 token 生成的。即使有 KV Cache 减少重复计算，每生成一个新 token，模型仍然要经过所有层的 Attention 和 FFN，因此模型越大，在线服务的成本和延迟压力越明显；
 - ……
 
-典型Dense模型
+典型Dense模型：OpenAI GPT-3、Meta Llama 2、Qwen Dense系列
 
 ### 2.3. MoE
+**——让不同 token 走不同的专家路径**
+
+MoE，全称是 **Mixture of Experts**，直译是“专家混合模型”。在 LLM 中，MoE 通常不是替换整个 Transformer，而是主要改造 Transformer Block 里的 **FFN / MLP 层**。
+
+![[Pasted image 20261105144734.png]]
 
 
+核心架构：把一个FFN变成多个专家
+1. **Expert 化**： 把原来的单个 FFN 拆成多个独立 FFN，每个 FFN 是一个 expert；
+2. **Router 路由**：为每个 token 计算 expert 分数，决定它应该交给哪些 expert；
+3. **Top-k 激活**：每个 token 只选择分数最高的 k 个 expert，而不是使用全部 expert；
+4. **Gate 加权**：被选中的 expert 输出会按 router 权重加权合并；
+5. **负载均衡**：通过 aux loss、capacity factor 等机制，避免 token 都挤到少数 expert。
+
+**`Total Parameters >> Active Parameters`**
 
 
