@@ -164,6 +164,12 @@ MoE 的代价：
 MoE的挑战：稀疏激活背后的训练与系统复杂度
 - 路由机制：token应该交给哪个expert
 	- MoE 的关键是 Router。它会根据 token 的 hidden state 计算 expert 分数，并选择 Top-k 个 expert：`selected_experts = TopK(router(x))`
+	- 这带来的问题是：路由选择是动态的，不同 token 会走不同 expert。训练早期 Router 还不稳定，可能导致 token 分配剧烈波动，进而影响模型收敛。
 - 训练稳定性：专家塌缩与负载不均
-	- 
+	- MoE 最典型的问题是 **expert collapse**：大量 token 被路由到少数 expert，其他 expert 几乎没有训练机会。
+	- 这会造成两个后果：一是热门 expert 过载，训练效率下降；二是冷门 expert 学不到东西，模型容量被浪费。
+- 内存压力：Active少，不代表Total小
+	- MoE 的优势是：`每个 token 只激活少量 expert`，但它的问题是：`所有 expert 参数仍然需要存储`。
+- 通信与推理：稀疏计算带来动态调度
+	- MoE在分布式训练和推理时，需要把token分发到不同expert所在的GPU上，会引入明显的通信和调度复杂度
 
