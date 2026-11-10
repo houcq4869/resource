@@ -1,0 +1,19 @@
+oh_learn/源码解读/01-分层架构总览.md
+  s_084a71af27df43::t_f76fa99c45d633 1-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a3c7342b379aa9942c4988d1e7c2bffcd8604caa",
+  "prompts": {},
+  "sessions": {
+    "s_084a71af27df43": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e3cdc72feffe6WAc9EfBsEJ44o",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  }
+}
