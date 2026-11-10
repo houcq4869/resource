@@ -1,0 +1,19 @@
+oh_learn/源码解读/00-总览定位与解读路线.md
+  s_084a71af27df43::t_9af824c5db6e31 1-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ab8a58d556cad0c5fe8055b9947fe749fd1018cf",
+  "prompts": {},
+  "sessions": {
+    "s_084a71af27df43": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e3cdc72feffe6WAc9EfBsEJ44o",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  }
+}
