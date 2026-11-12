@@ -1,0 +1,22 @@
+js_learn/00-全景图.md
+  h_5808ebd0f57f3c 1-66
+js_learn/01-类型与语法.md
+  h_5808ebd0f57f3c 1-229
+js_learn/02-闭包与this.md
+  h_5808ebd0f57f3c 1-173
+js_learn/03-异步与事件循环.md
+  h_5808ebd0f57f3c 1-177
+js_learn/04-工程化与毕业项目.md
+  h_5808ebd0f57f3c 1-162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "91509db1779309f559d02571bf5743389fa1c90a",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  }
+}
