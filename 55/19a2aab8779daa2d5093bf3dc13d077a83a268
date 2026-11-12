@@ -1,0 +1,19 @@
+oh_learn/源码解读/03-方舟编译体系.md
+  s_084a71af27df43::t_7bcb04d520a11f 1-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5519a2aab8779daa2d5093bf3dc13d077a83a268",
+  "prompts": {},
+  "sessions": {
+    "s_084a71af27df43": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e3cdc72feffe6WAc9EfBsEJ44o",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  }
+}
