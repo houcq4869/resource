@@ -1,4 +1,5 @@
 {
   "nativeMenus": false,
-  "cssTheme": "Things"
+  "cssTheme": "Things",
+  "showRibbon": true
 }
