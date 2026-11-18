@@ -1,0 +1,28 @@
+"Deveco/DevEco Code 与 CLI 使用攻略.md"
+  s_13a76e99e70a1c::t_60b002fdea4146 1-269
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.9",
+  "base_commit_sha": "233ef690dd245ebe9ed59ac9d9881bd1fbfe3699",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_13a76e99e70a1c": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e12009a87ffeIqfaZH0dpr0GJx",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "custom_attributes": {
+        "stats_models": {"glm-5.3":{"additions":269}},
+        "stats_total_additions": 269
+      }
+    }
+  }
+}
