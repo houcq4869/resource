@@ -1,0 +1,182 @@
+{
+  "userName": "",
+  "permissionMode": "normal",
+  "model": "haiku",
+  "effortLevel": "high",
+  "serviceTier": "default",
+  "enableAutoTitleGeneration": true,
+  "titleGenerationLocale": "",
+  "titleGenerationModel": "deepseek:ai-gateway-chat/volcengine%2Fdeepseek-v4.1-flash",
+  "showTabTitlesByDefault": true,
+  "chatFontScale": 80,
+  "excludedTags": [],
+  "mediaFolder": "",
+  "systemPrompt": "",
+  "sharedEnvironmentVariables": "",
+  "envSnippets": [],
+  "keyboardNavigation": {
+    "scrollUpKey": "w",
+    "scrollDownKey": "s",
+    "focusInputKey": "i"
+  },
+  "requireCommandOrControlEnterToSend": false,
+  "locale": "zh-CN",
+  "providerConfigs": {
+    "antigravity": {
+      "cliPath": "",
+      "cliPathsByHost": {},
+      "enabled": false,
+      "environmentHash": "",
+      "environmentVariables": "",
+      "modelAliases": {},
+      "preferredReasoningByModel": {},
+      "visibleModels": [],
+      "selectedModelsByHost": {}
+    },
+    "claude": {
+      "installationMethodsByHost": {},
+      "wslDistroOverridesByHost": {},
+      "enabled": false,
+      "outputStyle": null,
+      "promptSuggestions": false,
+      "discoveredOutputStyles": [],
+      "cliPath": "",
+      "cliPathsByHost": {},
+      "loadUserSettings": true,
+      "enableChrome": false,
+      "visibleModels": [],
+      "modelAliases": {},
+      "environmentVariables": "",
+      "environmentHash": "",
+      "selectedModels": []
+    },
+    "codex": {
+      "enabled": false,
+      "safeMode": "workspace-write",
+      "cliPath": "",
+      "cliPathsByHost": {},
+      "modelAliases": {},
+      "visibleModels": [],
+      "enableUltraEffort": false,
+      "responseStyle": "pragmatic",
+      "responseVerbosity": "default",
+      "reasoningSummary": "detailed",
+      "environmentVariables": "",
+      "environmentHash": "",
+      "installationMethodsByHost": {},
+      "wslDistroOverridesByHost": {},
+      "selectedModels": []
+    },
+    "deepseek": {
+      "installationMethodsByHost": {
+        "device-4d3feae6ee70e80af6fafa071fc2511eeeb17e9d43ff897c7fc8b52a54115b02": "wsl"
+      },
+      "wslDistroOverridesByHost": {},
+      "enabled": true,
+      "codeMode": false,
+      "presetPlugins": "",
+      "cliPath": "",
+      "cliPathsByHost": {},
+      "environmentVariables": "",
+      "environmentHash": "runtime-input:v1:718dc2d215f255e086d1d04ad8efa0e3fa38b512c41debd7d8da60cc9aac3ea0",
+      "visibleModels": [
+        "deepseek:ai-gateway-chat/volcengine%2Fdeepseek-v4.1-flash"
+      ],
+      "modelAliases": {},
+      "preferredReasoningByModel": {},
+      "selectedModels": [
+        {
+          "encodedId": "deepseek:ai-gateway-chat/volcengine%2Fdeepseek-v4.1-flash",
+          "provider": "ai-gateway-chat",
+          "providerName": "ai-gateway (chat)",
+          "id": "volcengine/deepseek-v4.1-flash",
+          "label": "DeepSeek V4.1 Flash (Volcengine 261017)",
+          "reasoning": [
+            {
+              "id": "low",
+              "name": "Low"
+            },
+            {
+              "id": "medium",
+              "name": "Medium"
+            },
+            {
+              "id": "high",
+              "name": "High"
+            }
+          ],
+          "available": true
+        }
+      ]
+    },
+    "grok": {
+      "installationMethodsByHost": {},
+      "wslDistroOverridesByHost": {},
+      "cliPath": "",
+      "cliPathsByHost": {},
+      "enabled": false,
+      "environmentHash": "",
+      "environmentVariables": "",
+      "modelAliases": {},
+      "preferredReasoningByModel": {},
+      "visibleModels": [],
+      "selectedModelsByHost": {}
+    },
+    "opencode": {
+      "installationMethodsByHost": {
+        "device-4d3feae6ee70e80af6fafa071fc2511eeeb17e9d43ff897c7fc8b52a54115b02": "wsl"
+      },
+      "wslDistroOverridesByHost": {},
+      "cliPath": "",
+      "cliPathsByHost": {},
+      "enabled": false,
+      "environmentHash": "runtime-input:v1:0b5659bc898b10330eecb68326065fbfbd77189e9e64f8605e2ad3baa13e0cfd",
+      "environmentVariables": "",
+      "modelAliases": {},
+      "preferredThinkingByModel": {},
+      "thinkingOptionsByModel": {},
+      "visibleModels": [],
+      "selectedModels": []
+    },
+    "pi": {
+      "installationMethodsByHost": {},
+      "wslDistroOverridesByHost": {},
+      "cliPath": "",
+      "cliPathsByHost": {},
+      "enabled": false,
+      "environmentHash": "",
+      "environmentVariables": "",
+      "modelAliases": {},
+      "preferredThinkingByModel": {},
+      "visibleModels": [],
+      "selectedModels": []
+    }
+  },
+  "settingsProvider": "deepseek",
+  "lastSelectedChatModel": null,
+  "inlineEditModel": null,
+  "savedProviderModel": {},
+  "savedProviderEffort": {},
+  "savedProviderServiceTier": {},
+  "savedProviderPermissionMode": {
+    "claude": "auto",
+    "deepseek": "normal",
+    "opencode": "normal"
+  },
+  "enableAutoScroll": true,
+  "deferMathRenderingDuringStreaming": true,
+  "pluginRenderedFenceLanguages": [],
+  "expandFileEditsByDefault": false,
+  "chatViewPlacement": "right-sidebar",
+  "enableZenMode": true,
+  "zenModePosition": null,
+  "enableDualPane": true,
+  "dualPaneSide": "right",
+  "restoreTabsOnStartup": true,
+  "skillsSynced": false,
+  "sessionManagerOrganization": "list",
+  "sessionManagerSort": "last-updated",
+  "sessionAutoArchiveAfter": "off",
+  "pinnedLinkedContentPaths": [],
+  "hiddenCommands": []
+}
