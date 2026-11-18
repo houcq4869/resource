@@ -1,0 +1,28 @@
+"Deveco/DevEco Code 与 DevEco CLI 调研.md"
+  s_13a76e99e70a1c::t_cdb5f6e7d052dd 1-158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "5.30.9",
+  "base_commit_sha": "5f9ba9917da9c2f207b6e354d237b6f18b20ebb5",
+  "prompts": {},
+  "humans": {
+    "h_5808ebd0f57f3c": {
+      "author": "houchaoqun <houchaoqun@h-partners.com>"
+    }
+  },
+  "sessions": {
+    "s_13a76e99e70a1c": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_e12009a87ffeIqfaZH0dpr0GJx",
+        "model": "glm-5.3"
+      },
+      "human_author": "houchaoqun <houchaoqun@h-partners.com>",
+      "custom_attributes": {
+        "stats_models": {"glm-5.3":{"additions":158}},
+        "stats_total_additions": 158
+      }
+    }
+  }
+}
